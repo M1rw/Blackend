@@ -79,24 +79,24 @@ Even if server disks or backups were seized, the vault applies an additional ser
 
 ### Vercel Configuration (`vercel.json`)
 
-`vercel.json` configures serverless execution using `vercel-php@0.9.0`:
+`vercel.json` configures serverless execution for files in the `api/` directory using `vercel-php@0.9.0`:
 
 ```json
 {
   "version": 2,
   "functions": {
-    "*.php": {
+    "api/*.php": {
       "runtime": "vercel-php@0.9.0"
     }
   },
   "routes": [
     {
       "src": "/vault.php",
-      "dest": "/vault.php"
+      "dest": "/api/vault.php"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.php"
+      "dest": "/api/index.php"
     }
   ]
 }
