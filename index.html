@@ -1,20 +1,10 @@
-<?php
-declare(strict_types=1);
-
-// Prevent caching and emit defensive HTTP security headers
-header('Content-Type: text/html; charset=utf-8');
-header('Referrer-Policy: no-referrer');
-header('X-Content-Type-Options: nosniff');
-header('Cache-Control: no-store, no-cache, must-revalidate');
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>blackend — the chat that forgets</title>
-<meta name="description" content="Serverless end-to-end temporary messaging with blind escrow vault. The encrypted key stays inside the link — one read, then ash. No accounts, no tracking, no permanent storage.">
+<meta name="description" content="Serverless end-to-end temporary messaging. The encrypted message travels inside the link — one read, then ash. No accounts, no servers, no storage.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230a0b0e'/><circle cx='16' cy='16' r='5' fill='%23ffb454'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,7 +56,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
         <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
       </button>
       <span class="mt-brand">blackend<span class="p">.</span></span>
-      <span class="mt-tag">end-to-end · serverless escrow · nothing leaves in the clear</span>
+      <span class="mt-tag">end-to-end · serverless · nothing leaves</span>
       <nav class="mt-nav">
         <a href="#how">how it ends</a>
         <a href="#proof">the proof</a>
@@ -80,7 +70,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
       <section class="hero">
         <span class="tag"><i class="live"></i>the chat that forgets</span>
         <h1 class="h1">Say it once. It ends<span class="p">.</span></h1>
-        <p class="sub">Write a message — or attach a file — and seal it into a self-destructing link.
+        <p class="sub">Write a message — or attach a file — and seal it into a link.
           The encryption happens in your browser and the key travels inside the link —
           browsers never send the part after <b>#</b>. One read, then ash. Your archive
           lives only on this device, under names that say nothing.</p>
