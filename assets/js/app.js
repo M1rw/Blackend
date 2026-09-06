@@ -70,6 +70,7 @@
     fuse: 'read',
     burn: 'calm',
     burnTime: 2.0,
+    readTime: 4,
     autocopy: false,
     archive: true,
     attLimit: 5,
@@ -417,6 +418,41 @@
       await wait(600);
       bpSample.textContent = 'this message will turn to embers and ash…';
       burnTestBtn.disabled = false;
+    });
+  }
+
+  /* --- Read Countdown Setting --- */
+  const readSlider = $('#readSlider');
+  const readInput = $('#readInput');
+
+  function syncReadUI() {
+    const rt = parseFloat(SET.readTime) || 4;
+    if (readSlider) readSlider.value = Math.min(Math.max(rt, 1), 60);
+    if (readInput) readInput.value = Math.round(rt);
+  }
+
+  try {
+    const savedReadTime = localStorage.getItem('blackend_read_time');
+    if (savedReadTime) SET.readTime = Math.max(1, parseFloat(savedReadTime) || 4);
+  } catch (_) {}
+  syncReadUI();
+
+  if (readSlider && readInput) {
+    readSlider.addEventListener('input', () => {
+      const val = parseInt(readSlider.value, 10);
+      SET.readTime = val;
+      readInput.value = val;
+      try { localStorage.setItem('blackend_read_time', String(val)); } catch (_) {}
+    });
+
+    readInput.addEventListener('input', () => {
+      let val = parseInt(readInput.value, 10);
+      if (!isNaN(val)) {
+        val = clampN(val, 1, 300);
+        SET.readTime = val;
+        readSlider.value = Math.min(val, 60);
+        try { localStorage.setItem('blackend_read_time', String(val)); } catch (_) {}
+      }
     });
   }
 
@@ -1503,7 +1539,8 @@
     attCard.style.transition = '';
     attSave.hidden = true;
 
-    const cdSecs = obj.f ? 12 : 4;
+    const baseReadTime = Math.max(1, parseFloat(SET.readTime) || 4);
+    const cdSecs = obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime;
     cdNum.textContent = cdSecs + 's';
     ringFg.classList.remove('run');
     ringFg.style.animationDuration = cdSecs + 's';

@@ -399,6 +399,20 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
         <div class="st"><b>auto-copy link</b><span>copies to your clipboard the moment a message seals</span></div>
         <button class="sw2" data-set="autocopy" role="switch" aria-checked="false" aria-label="auto-copy link"></button>
       </div>
+      <div class="set-row col">
+        <div class="st"><b>read countdown</b><span>how long the message stays visible before it burns (after-read fuse)</span></div>
+        <div class="burn-custom-wrap" id="readCustomWrap" style="margin-top:6px">
+          <div class="burn-custom-row">
+            <input type="range" id="readSlider" min="1" max="60" step="1" value="4" class="burn-slider" aria-label="read countdown slider">
+            <div class="burn-val-box">
+              <input type="number" id="readInput" min="1" max="300" step="1" value="4" class="burn-input" aria-label="read countdown seconds">
+              <span class="burn-unit">s</span>
+            </div>
+          </div>
+          <p style="margin:2px 0 0;font:400 11.5px var(--fb);color:var(--mute);line-height:1.4">default is 4s · with an attachment the countdown adds 8s extra · max 300s</p>
+        </div>
+      </div>
+
     </div>
 
     <div class="set-group">
