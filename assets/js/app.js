@@ -69,6 +69,7 @@
     motes: true,
     fuse: 'read',
     burn: 'calm',
+    burnTime: 2.0,
     autocopy: false,
     archive: true,
     attLimit: 5,
@@ -356,12 +357,68 @@
     syncFuseUI();
   });
 
+  const burnCustomWrap = $('#burnCustomWrap');
+  const burnSlider = $('#burnSlider');
+  const burnInput = $('#burnInput');
+  const burnTestBtn = $('#burnTestBtn');
+  const bpSample = $('#bpSample');
+
+  function syncBurnUI() {
+    [...$('#segBurn').children].forEach(x => x.classList.toggle('on', x.dataset.burn === SET.burn));
+    if (burnCustomWrap) {
+      burnCustomWrap.hidden = SET.burn !== 'custom';
+    }
+    const bt = parseFloat(SET.burnTime) || 2.0;
+    if (burnSlider) burnSlider.value = Math.min(Math.max(bt, 0.2), 8.0);
+    if (burnInput) burnInput.value = bt.toFixed(1);
+  }
+
+  try {
+    const savedBurn = localStorage.getItem('blackend_burn_speed');
+    if (savedBurn) SET.burn = savedBurn;
+    const savedTime = localStorage.getItem('blackend_burn_time');
+    if (savedTime) SET.burnTime = parseFloat(savedTime) || 2.0;
+  } catch (_) {}
+  syncBurnUI();
+
   $('#segBurn').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
     SET.burn = b.dataset.burn;
-    [...$('#segBurn').children].forEach(x => x.classList.toggle('on', x === b));
+    syncBurnUI();
+    try { localStorage.setItem('blackend_burn_speed', SET.burn); } catch (_) {}
   });
+
+  if (burnSlider && burnInput) {
+    burnSlider.addEventListener('input', () => {
+      const val = parseFloat(burnSlider.value);
+      SET.burnTime = val;
+      burnInput.value = val.toFixed(1);
+      try { localStorage.setItem('blackend_burn_time', String(val)); } catch (_) {}
+    });
+
+    burnInput.addEventListener('input', () => {
+      let val = parseFloat(burnInput.value);
+      if (!isNaN(val)) {
+        val = clampN(val, 0.1, 30.0);
+        SET.burnTime = val;
+        burnSlider.value = Math.min(val, 8.0);
+        try { localStorage.setItem('blackend_burn_time', String(val)); } catch (_) {}
+      }
+    });
+  }
+
+  if (burnTestBtn && bpSample) {
+    burnTestBtn.addEventListener('click', async () => {
+      burnTestBtn.disabled = true;
+      bpSample.textContent = 'this message will turn to embers and ash…';
+      const spans = waveify(bpSample);
+      await runWave(spans);
+      await wait(600);
+      bpSample.textContent = 'this message will turn to embers and ash…';
+      burnTestBtn.disabled = false;
+    });
+  }
 
   function setStatusLine() {
     let ck = 0, keys = 0;
@@ -457,7 +514,14 @@
   function runWave(spans) {
     return new Promise(res => {
       if (REDUCED || !spans.length) { res(); return; }
-      const dur = SET.burn === 'quick' ? 650 : 1350;
+      let dur = 1350;
+      if (SET.burn === 'quick') {
+        dur = 650;
+      } else if (SET.burn === 'custom') {
+        dur = Math.max(100, Math.min(30000, Math.round((parseFloat(SET.burnTime) || 2.0) * 1000)));
+      } else {
+        dur = 1350;
+      }
       const t0 = performance.now();
       const n = spans.length;
       let lastIndex = 0;

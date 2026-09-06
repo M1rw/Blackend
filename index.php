@@ -377,8 +377,22 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
       <div class="set-row col">
         <div class="st"><b>burn speed</b><span>how fast text turns to embers</span></div>
         <div class="seg2" id="segBurn">
-          <button data-burn="calm" class="on">calm</button>
-          <button data-burn="quick">quick</button>
+          <button data-burn="calm" class="on">calm (1.4s)</button>
+          <button data-burn="quick">quick (0.6s)</button>
+          <button data-burn="custom" id="btnBurnCustom">custom</button>
+        </div>
+        <div class="burn-custom-wrap" id="burnCustomWrap" hidden>
+          <div class="burn-custom-row">
+            <input type="range" id="burnSlider" min="0.2" max="8.0" step="0.1" value="2.0" class="burn-slider" aria-label="burn speed slider">
+            <div class="burn-val-box">
+              <input type="number" id="burnInput" min="0.1" max="30.0" step="0.1" value="2.0" class="burn-input" aria-label="custom burn seconds">
+              <span class="burn-unit">s</span>
+            </div>
+            <button type="button" class="burn-test-btn" id="burnTestBtn" title="preview custom burn speed">test</button>
+          </div>
+          <div class="burn-preview-line" id="burnPreviewLine">
+            <span class="bp-sample" id="bpSample">this message will turn to embers and ash…</span>
+          </div>
         </div>
       </div>
       <div class="set-row">
