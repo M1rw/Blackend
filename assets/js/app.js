@@ -204,11 +204,13 @@
 
   function loadChats() {
     try {
-      chats = JSON.parse(localStorage.getItem(LSKEY) || '[]');
+      const raw = localStorage.getItem(LSKEY);
+      chats = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(chats)) chats = [];
+      chats = chats.filter(c => c && typeof c === 'object' && c.id);
     } catch (_) {
       chats = [];
     }
-    if (!Array.isArray(chats)) chats = [];
   }
 
   function persist() {
@@ -1742,6 +1744,10 @@
 
   /* ---------- Render Decrypted Message View ---------- */
   async function renderDecryptedMessage(obj, kb, customCdSecs) {
+    if (typeof window.__cdCleanup === 'function') {
+      window.__cdCleanup();
+      window.__cdCleanup = null;
+    }
     state = 'viewing';
     setAvatarMode('view');
     mOpen.textContent = `opened ${utcHM()} utc`;

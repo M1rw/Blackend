@@ -247,7 +247,10 @@ const VaultBackend = (() => {
   function _startPoll(token, onEvent) {
     let lastState = '';
     _pollTimer = setInterval(async () => {
-      if (!_watching) return;
+      if (!_watching) {
+        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+        return;
+      }
       try {
         const r = await call('status', { id: token });
         if (!r || !r.ok) return;
@@ -274,6 +277,7 @@ const VaultBackend = (() => {
       await _tryStream(token, onEvent, _watchAbort.signal);
     } catch (err) {
       if (err && err.name === 'AbortError') return; // intentionally stopped
+      if (!_watching) return; // stopped while trying stream
       // Streaming unavailable (old browser, no ReadableStream, etc.) — use poll
       _startPoll(token, onEvent);
     }

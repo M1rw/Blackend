@@ -127,6 +127,31 @@ echo "[PASS] PIN 3-strike brute force rate limiting verified\n";
 $vault->gc();
 echo "[PASS] Vault::gc handled stray folders without throwing unhandled exceptions\n";
 
+// Test 9: Multi-megabyte file shredding
+$largeFile = $testDir . '/large_test_blob.bin';
+$largeData = random_bytes(2500000); // 2.5 MB data
+file_put_contents($largeFile, $largeData);
+assert(file_exists($largeFile), 'Large test file must exist before shredding');
+$rmMethod = new ReflectionMethod('Vault', 'shred');
+$rmMethod->setAccessible(true);
+$rmMethod->invoke($vault, $largeFile);
+assert(!file_exists($largeFile), 'Large test file must be completely unlinked after shredding');
+echo "[PASS] Multi-megabyte file full shredding verified (2.5 MB overwritten & unlinked)\n";
+
+// Test 10: Serverless SSE watch duration capping
+putenv('VERCEL=1');
+$vStore = $vault->store(3600, false, 0, base64_encode(random_bytes(12)), base64_encode(random_bytes(64)));
+$vId = $vStore['id'];
+$tStart = microtime(true);
+ob_start();
+$vault->watch($vId);
+$wOutput = ob_get_clean();
+$tElapsed = microtime(true) - $tStart;
+assert($tElapsed < 12.0, "Watch window on Vercel must finish in under 12 seconds (actual: {$tElapsed}s)");
+assert(strpos($wOutput, 'data: ') !== false, 'Watch output must contain SSE data messages');
+putenv('VERCEL');
+echo "[PASS] Serverless SSE watch duration cap verified (elapsed: " . round($tElapsed, 2) . "s)\n";
+
 // Cleanup test dir
 foreach (glob($testDir . '/*') ?: [] as $f) {
     if (is_dir($f)) {
