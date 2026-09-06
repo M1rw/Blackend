@@ -1143,27 +1143,38 @@
 
     fuseLeft = expSec;
 
-    await burnDraft();
-    buildCard(rec.t, mode);
-    await go('card');
-    clearAttachment();
-    state = 'sealed';
-    setAvatarMode('sealed');
+    try {
+      await burnDraft();
+      buildCard(rec.t, mode, vaultToken);
+      await go('card');
+      clearAttachment();
+      state = 'sealed';
+      setAvatarMode('sealed');
 
-    startFuse();
-    if (mode === 'vault') {
-      startPoll();
-    }
+      startFuse();
+      if (mode === 'vault') {
+        startPoll();
+      }
 
-    if (SET.autocopy && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(linkUrl)
-        .then(() => toast('link copied — it still ends.'))
-        .catch(() => {});
+      if (SET.autocopy && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkUrl)
+          .then(() => toast('link copied — it still ends.'))
+          .catch(() => {});
+      }
+    } catch (uiErr) {
+      console.error('UI transition error after sealing:', uiErr);
+      state = 'sealed';
+      setAvatarMode('sealed');
+      try {
+        buildCard(rec.t, mode, vaultToken);
+        await go('card');
+      } catch (_) {}
     }
   }
 
   /* ================= Share Card Rendering ================= */
-  function buildCard(title, mode = 'vault') {
+  function buildCard(title, mode = 'vault', token = curToken) {
+    const activeToken = token || curToken;
     const timed = expiry !== 'read';
     const qrResult = BlackendQR.renderSVG(linkUrl);
     lastQR = qrResult ? qrResult.q : null;
@@ -1246,7 +1257,7 @@
           </div>
         </div>
       </div>
-      ${mode === 'vault' && VaultBackend.loadReceiptKey(vaultToken) ? `
+      ${mode === 'vault' && activeToken && typeof VaultBackend !== 'undefined' && VaultBackend.loadReceiptKey(activeToken) ? `
       <div class="rcptwrap" id="rcptWrap">
         <button class="svbtn" data-act="rcpt" aria-expanded="false">
           ${IC.shield} delivery receipt ${IC.chev}
@@ -2071,7 +2082,7 @@
 
     syncFuseUI();
     setAvatarMode('sealed');
-    buildCard(c.t, isDirect ? 'direct' : 'vault');
+    buildCard(c.t, isDirect ? 'direct' : 'vault', isDirect ? null : c.id);
     state = 'sealed';
 
     go('card').then(() => {
