@@ -1,7 +1,7 @@
 /**
- * blackend crypto engine
- * Pure client-side AES-256-GCM & PBKDF2 encryption.
- * Decryption keys NEVER leave the browser and are never transmitted to any server.
+ * blackend crypto engine (v2.1)
+ * Pure client-side AES-256-GCM & PBKDF2/HKDF encryption.
+ * Decryption keys NEVER leave the browser and are never transmitted in clear to any server.
  */
 
 const BlackendCrypto = (() => {
@@ -9,6 +9,14 @@ const BlackendCrypto = (() => {
   const PBKDF2_ITERS = 120000;
   const HAS_CRYPTO = !!(typeof window !== 'undefined' && window.crypto && window.crypto.subtle)
     || !!(typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.subtle);
+
+  function getSubtle() {
+    return (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
+  }
+
+  function getRandomBytes(n) {
+    return (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(n));
+  }
 
   /* ---------- Base64URL Helpers ---------- */
   function b64u(buf) {
@@ -34,21 +42,45 @@ const BlackendCrypto = (() => {
     return new Uint8Array(Buffer.from(s, 'base64'));
   }
 
-  /* ---------- PBKDF2 Key Derivation ---------- */
+  /* ---------- Key Derivation: PBKDF2 (for PIN) & HKDF (for Nano Seeds) ---------- */
   async function deriveWrapKey(pin, salt, iterations = PBKDF2_ITERS) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
-    const baseKey = await cryptoSubtle.importKey(
+    const subtle = getSubtle();
+    const baseKey = await subtle.importKey(
       'raw',
       new TextEncoder().encode(pin),
       { name: 'PBKDF2' },
       false,
       ['deriveKey']
     );
-    return cryptoSubtle.deriveKey(
+    return subtle.deriveKey(
       { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
       baseKey,
       { name: 'AES-GCM', length: 256 },
       false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  /** Expands a compact 16-byte random seed into a full 256-bit AES-GCM key */
+  async function deriveKeyFromSeed(seedBytes) {
+    const subtle = getSubtle();
+    const rawKey = await subtle.importKey(
+      'raw',
+      seedBytes,
+      { name: 'HKDF' },
+      false,
+      ['deriveKey']
+    );
+    return subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(16), // Fixed domain salt
+        info: new TextEncoder().encode('blackend-v2-nano')
+      },
+      rawKey,
+      { name: 'AES-GCM', length: 256 },
+      true,
       ['encrypt', 'decrypt']
     );
   }
@@ -63,8 +95,8 @@ const BlackendCrypto = (() => {
      ========================================================================= */
 
   async function buildDirectPayload(msg, expSec, pin, file) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
-    const key = await cryptoSubtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    const subtle = getSubtle();
+    const key = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 
     let fileMeta = null;
     let attBlob = null;
@@ -82,9 +114,9 @@ const BlackendCrypto = (() => {
 
       const segs = [];
       for (let i = 0; i < nc; i++) {
-        const iv = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
+        const iv = getRandomBytes(12);
         const chunkSlice = buf.subarray(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, buf.byteLength));
-        const ct = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv }, key, chunkSlice));
+        const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, chunkSlice));
         
         const len = new Uint8Array(4);
         new DataView(len.buffer).setUint32(0, ct.length);
@@ -103,18 +135,20 @@ const BlackendCrypto = (() => {
       }
     }
 
-    const iv = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
-    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expSec, f: fileMeta }));
-    const ct = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
-    const rawKb = new Uint8Array(await cryptoSubtle.exportKey('raw', key));
+    // Fix: Store absolute Unix timestamp (or 0 for 'after read')
+    const expiresAt = expSec > 0 ? (Math.floor(Date.now() / 1000) + expSec) : 0;
+    const iv = getRandomBytes(12);
+    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expiresAt, f: fileMeta }));
+    const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
+    const rawKb = new Uint8Array(await subtle.exportKey('raw', key));
 
     const parts = [fileMeta ? 'k2' : 'k1', b64u(iv), b64u(ct)];
 
     if (pin) {
-      const salt = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(16));
-      const wiv = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
+      const salt = getRandomBytes(16);
+      const wiv = getRandomBytes(12);
       const wk = await deriveWrapKey(pin, salt);
-      const wrapped = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv: wiv }, wk, rawKb));
+      const wrapped = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: wiv }, wk, rawKb));
       parts.push(b64u(salt), b64u(wiv), b64u(wrapped));
     } else {
       parts.push(b64u(rawKb));
@@ -128,7 +162,7 @@ const BlackendCrypto = (() => {
   }
 
   async function decryptDirectPayload(parts, pin) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
+    const subtle = getSubtle();
     const iv = ub64(parts[1]);
     const ct = ub64(parts[2]);
     const n = parts.length;
@@ -142,21 +176,21 @@ const BlackendCrypto = (() => {
       const wiv = ub64(parts[4]);
       const wrapped = ub64(parts[5]);
       const wk = await deriveWrapKey(pin, salt);
-      kb = new Uint8Array(await cryptoSubtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
+      kb = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
     } else {
       throw new Error('invalidParts');
     }
 
-    const key = await cryptoSubtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
-    const pt = new Uint8Array(await cryptoSubtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+    const key = await subtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
+    const pt = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
     const obj = JSON.parse(new TextDecoder().decode(pt));
     return { obj, kb };
   }
 
   async function decryptDirectAttachment(parts, kb, mimeType) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
+    const subtle = getSubtle();
     const bin = ub64(parts[parts.length - 1]);
-    const key = await cryptoSubtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
+    const key = await subtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
     const jobs = [];
     let off = 0;
 
@@ -167,7 +201,7 @@ const BlackendCrypto = (() => {
       off += 12;
       const ctb = bin.subarray(off, off + len);
       off += len;
-      jobs.push(cryptoSubtle.decrypt({ name: 'AES-GCM', iv }, key, ctb));
+      jobs.push(subtle.decrypt({ name: 'AES-GCM', iv }, key, ctb));
     }
 
     const bufs = await Promise.all(jobs);
@@ -178,17 +212,26 @@ const BlackendCrypto = (() => {
   }
 
   /* =========================================================================
-     2. VAULT ESCROW ENGINE (Short Link / Blind Server Storage)
-     Envelope uploaded to Vault; Key in URL fragment:
-     - #k1.key                                    (no pin)
-     - #k2.salt.wiv.wrapped                       (with pin)
+     2. VAULT ESCROW ENGINE (Hyper-Short Creative Links)
+     - Without PIN: Uses compact 16-byte Nano-Seed (#n.seed -> ~22 chars)
+     - With PIN: Key is wrapped with PBKDF2 and safely held in escrow envelope;
+                 URL REQUIRES NO FRAGMENT AT ALL (# is omitted)!
      ========================================================================= */
 
   async function buildVaultPayload(msg, expSec, pin, file) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
-    const key = await cryptoSubtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-    const iv = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
+    const subtle = getSubtle();
+    let key;
+    let seed = null;
 
+    if (!pin) {
+      // Generate compact 16-byte random seed and derive 256-bit AES key via HKDF
+      seed = getRandomBytes(16);
+      key = await deriveKeyFromSeed(seed);
+    } else {
+      key = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    }
+
+    const iv = getRandomBytes(12);
     let nc = 0;
     const chunkBlobs = [];
 
@@ -196,9 +239,9 @@ const BlackendCrypto = (() => {
       const buf = new Uint8Array(await (file.arrayBuffer ? file.arrayBuffer() : file));
       nc = Math.max(1, Math.ceil(buf.byteLength / CHUNK_SIZE));
       for (let i = 0; i < nc; i++) {
-        const civ = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
+        const civ = getRandomBytes(12);
         const chunkSlice = buf.subarray(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, buf.byteLength));
-        const cct = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv: civ }, key, chunkSlice));
+        const cct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: civ }, key, chunkSlice));
         
         const raw = new Uint8Array(12 + cct.length);
         raw.set(civ);
@@ -214,80 +257,135 @@ const BlackendCrypto = (() => {
       nc
     } : null;
 
-    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expSec, f: fileMeta }));
-    const ct = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
-    const rawKb = new Uint8Array(await cryptoSubtle.exportKey('raw', key));
+    // Fix: Store absolute Unix timestamp (or 0 for 'after read')
+    const expiresAt = expSec > 0 ? (Math.floor(Date.now() / 1000) + expSec) : 0;
+    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expiresAt, f: fileMeta }));
+    const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
+    const rawKb = new Uint8Array(await subtle.exportKey('raw', key));
 
-    let frag;
+    let frag = '';
+    const envelope = {
+      exp: expSec,
+      pin: !!pin,
+      nc,
+      iv: b64u(iv),
+      ct: b64u(ct)
+    };
+
     if (pin) {
-      const salt = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(16));
-      const wiv = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).getRandomValues(new Uint8Array(12));
+      // Zero-Hash PIN Shield: Store PBKDF2 wrapped key inside the server envelope.
+      // The server CANNOT decrypt it without the PIN.
+      // Result: The URL needs NO FRAGMENT! (e.g. /v/ember-fox or ?m=k7x9q)
+      const salt = getRandomBytes(16);
+      const wiv = getRandomBytes(12);
       const wk = await deriveWrapKey(pin, salt);
-      const wrapped = new Uint8Array(await cryptoSubtle.encrypt({ name: 'AES-GCM', iv: wiv }, wk, rawKb));
-      frag = `k2.${b64u(salt)}.${b64u(wiv)}.${b64u(wrapped)}`;
+      const wrapped = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: wiv }, wk, rawKb));
+      
+      envelope.salt = b64u(salt);
+      envelope.wiv = b64u(wiv);
+      envelope.wrapped = b64u(wrapped);
+      frag = ''; // No hash needed!
     } else {
-      frag = `k1.${b64u(rawKb)}`;
+      // Ultra-compact 16-byte Nano-Seed fragment
+      frag = `n.${b64u(seed)}`;
     }
 
     return {
-      envelope: {
-        exp: expSec,
-        pin: !!pin,
-        nc,
-        iv: b64u(iv),
-        ct: b64u(ct)
-      },
+      envelope,
       chunks: chunkBlobs,
       frag,
       fileMeta
     };
   }
 
-  async function decryptVaultPayload(ivB64, ctB64, frag, pin) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
-    const parts = (frag || '').split('.');
-    let kb;
+  async function decryptVaultPayload(envelopeOrIv, fragOrCt, pinOrFrag, maybePin) {
+    const subtle = getSubtle();
+    let resEnvelope, frag, pin;
+    if (typeof envelopeOrIv === 'object' && envelopeOrIv !== null) {
+      resEnvelope = envelopeOrIv;
+      frag = fragOrCt || '';
+      pin = pinOrFrag || null;
+    } else {
+      resEnvelope = {
+        iv: envelopeOrIv,
+        ct: fragOrCt
+      };
+      frag = pinOrFrag || '';
+      pin = maybePin || null;
+    }
 
-    if (parts[0] === 'k1') {
-      kb = ub64(parts[1]);
-    } else if (parts[0] === 'k2') {
+    let key;
+    let kbBytes = null;
+
+    // Check if envelope has PIN protection (Zero-Hash PIN Shield)
+    if (resEnvelope.wrapped && resEnvelope.salt && resEnvelope.wiv) {
       if (!pin) throw new Error('needPin');
+      const salt = ub64(resEnvelope.salt);
+      const wiv = ub64(resEnvelope.wiv);
+      const wrapped = ub64(resEnvelope.wrapped);
+      const wk = await deriveWrapKey(pin, salt);
+      kbBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
+      key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
+    } else if (frag && frag.startsWith('n.')) {
+      // Compact Nano-Seed key
+      const seedBytes = ub64(frag.slice(2));
+      key = await deriveKeyFromSeed(seedBytes);
+      kbBytes = new Uint8Array(await subtle.exportKey('raw', key));
+    } else if (frag && frag.startsWith('k1.')) {
+      // Legacy unpinned key
+      kbBytes = ub64(frag.slice(3));
+      key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
+    } else if (frag && frag.startsWith('k2.')) {
+      // Legacy PIN wrapped fragment
+      if (!pin) throw new Error('needPin');
+      const parts = frag.split('.');
       const salt = ub64(parts[1]);
       const wiv = ub64(parts[2]);
       const wrapped = ub64(parts[3]);
       const wk = await deriveWrapKey(pin, salt);
-      kb = new Uint8Array(await cryptoSubtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
+      kbBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
+      key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
     } else {
+      // If PIN was expected
+      if (resEnvelope.pin) throw new Error('needPin');
       throw new Error('invalidFrag');
     }
 
-    const key = await cryptoSubtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
-    const iv = ub64(ivB64);
-    const ct = ub64(ctB64);
-    const pt = new Uint8Array(await cryptoSubtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+    const iv = ub64(resEnvelope.iv);
+    const ct = ub64(resEnvelope.ct);
+    const pt = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
     const obj = JSON.parse(new TextDecoder().decode(pt));
-    return { obj, kb };
+    return { obj, kb: kbBytes };
   }
 
   async function decryptVaultChunk(chunkB64, kb) {
-    const cryptoSubtle = (typeof window !== 'undefined' ? window.crypto : globalThis.crypto).subtle;
+    const subtle = getSubtle();
     const raw = ub64(chunkB64);
     const iv = raw.subarray(0, 12);
     const ct = raw.subarray(12);
-    const key = await cryptoSubtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
-    return new Uint8Array(await cryptoSubtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+    const key = await subtle.importKey('raw', kb, { name: 'AES-GCM' }, false, ['decrypt']);
+    return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
   }
 
-  /* ---------- Link Classifier ---------- */
-  function parseLink(search, hash) {
+  /* ---------- Universal Link Classifier & Extractor ---------- */
+  function parseLink(pathname, search, hash) {
+    if (arguments.length === 2) {
+      hash = search;
+      search = pathname;
+      pathname = '';
+    }
+    const p = (pathname || '').replace(/\/+$/, '');
+    const pathMatch = p.match(/\/(?:v|m)\/([A-Za-z0-9_-]+)/);
     const params = new URLSearchParams(search || '');
-    const token = params.get('m');
+    const token = (pathMatch && pathMatch[1]) || params.get('m');
     const h = (hash || '').replace(/^#/, '');
 
-    if (token && /^[A-Za-z0-9]{16,64}$/.test(token) && (h.startsWith('k1.') || h.startsWith('k2.'))) {
+    // 1. Vault Escrow Link: token present in path or ?m=
+    if (token && /^[A-Za-z0-9_-]{4,64}$/.test(token)) {
       return { mode: 'vault', token, frag: h };
     }
 
+    // 2. Direct In-Link: payload stored after #
     if (/^k[12]\./.test(h)) {
       const parts = h.split('.');
       if (parts.length >= 4) {
@@ -305,6 +403,7 @@ const BlackendCrypto = (() => {
     b64u,
     ub64,
     deriveWrapKey,
+    deriveKeyFromSeed,
     buildDirectPayload,
     decryptDirectPayload,
     decryptDirectAttachment,

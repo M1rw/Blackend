@@ -63,7 +63,10 @@ try {
                 !empty($in['pin']),
                 (int)($in['nc'] ?? 0),
                 (string)($in['iv'] ?? ''),
-                (string)($in['ct'] ?? '')
+                (string)($in['ct'] ?? ''),
+                (string)($in['salt'] ?? ''),
+                (string)($in['wiv'] ?? ''),
+                (string)($in['wrapped'] ?? '')
             ));
 
         case 'put':

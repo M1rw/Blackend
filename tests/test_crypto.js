@@ -36,6 +36,7 @@ async function runTests() {
 
   // Test 2.1: Direct In-Link Plain Message
   {
+    const now = Math.floor(Date.now() / 1000);
     const msg = 'Meet at midnight on the north pier.';
     const payload = await BlackendCrypto.buildDirectPayload(msg, 60, null, null);
     assert(payload.startsWith('k1.'), 'Direct payload should start with k1');
@@ -44,8 +45,8 @@ async function runTests() {
 
     const { obj } = await BlackendCrypto.decryptDirectPayload(parts, null);
     assert.strictEqual(obj.m, msg, 'Decrypted text must match original');
-    assert.strictEqual(obj.x, 60, 'Decrypted expiry must match original');
-    console.log('[PASS] Direct In-Link plain message encrypt/decrypt roundtrip');
+    assert(obj.x >= now + 58 && obj.x <= now + 62, 'Decrypted expiry must be absolute unix timestamp');
+    console.log('[PASS] Direct In-Link plain message encrypt/decrypt roundtrip with absolute timestamp');
   }
 
   // Test 2.2: Direct In-Link PIN-Protected Message
@@ -101,19 +102,22 @@ async function runTests() {
     console.log('[PASS] Direct In-Link file chunking, encryption, and reconstitution roundtrip');
   }
 
-  // Test 2.4: Vault Escrow Payload
+  // Test 2.4: Vault Escrow Zero-Hash PIN Shield (No fragment!)
   {
-    const msg = 'Vault escrow test message';
+    const msg = 'Vault escrow Zero-Hash PIN Shield test message';
     const pin = '7712';
     const vaultData = await BlackendCrypto.buildVaultPayload(msg, 600, pin, null);
     assert(vaultData.envelope.iv, 'Envelope must have IV');
     assert(vaultData.envelope.ct, 'Envelope must have Ciphertext');
-    assert(vaultData.frag.startsWith('k2.'), 'Vault key fragment for PIN must start with k2');
+    assert(vaultData.envelope.wrapped, 'Envelope must have PBKDF2 wrapped key');
+    assert(vaultData.envelope.salt, 'Envelope must have PBKDF2 salt');
+    assert(vaultData.envelope.wiv, 'Envelope must have wrapper IV');
+    assert.strictEqual(vaultData.frag, '', 'Zero-Hash PIN Shield requires NO hash fragment at all!');
 
     // Wrong PIN
     let failed = false;
     try {
-      await BlackendCrypto.decryptVaultPayload(vaultData.envelope.iv, vaultData.envelope.ct, vaultData.frag, '1234');
+      await BlackendCrypto.decryptVaultPayload(vaultData.envelope, '', '1234');
     } catch (_) {
       failed = true;
     }
@@ -121,32 +125,55 @@ async function runTests() {
 
     // Correct PIN
     const { obj } = await BlackendCrypto.decryptVaultPayload(
-      vaultData.envelope.iv,
-      vaultData.envelope.ct,
-      vaultData.frag,
+      vaultData.envelope,
+      '',
       pin
     );
     assert.strictEqual(obj.m, msg);
-    console.log('[PASS] Vault Escrow envelope encryption and key-fragment decryption roundtrip');
+    console.log('[PASS] Zero-Hash PIN Shield: Envelope encryption & fragmentless PIN decryption roundtrip');
   }
 
-  // Test 2.5: Link Classifier
+  // Test 2.5: Vault Escrow Unpinned Nano-Seed
   {
-    const directLink = BlackendCrypto.parseLink('', '#k1.abc.def.ghi');
+    const msg = 'Vault escrow Nano-Seed unpinned message';
+    const vaultData = await BlackendCrypto.buildVaultPayload(msg, 0, null, null);
+    assert(vaultData.frag.startsWith('n.'), 'Nano-Seed fragment must start with n.');
+    assert(vaultData.frag.length <= 30, 'Nano-Seed fragment must be ultra-compact (<=30 chars)');
+
+    const { obj } = await BlackendCrypto.decryptVaultPayload(
+      vaultData.envelope,
+      vaultData.frag,
+      null
+    );
+    assert.strictEqual(obj.m, msg);
+    console.log('[PASS] Ultra-compact Nano-Seed HKDF envelope roundtrip');
+  }
+
+  // Test 2.6: Link Classifier & Clean URLs
+  {
+    // Clean path URL with no fragment (Zero-Hash PIN Shield)
+    const cleanPinnedLink = BlackendCrypto.parseLink('/v/ash-fox-42', '', '');
+    assert.strictEqual(cleanPinnedLink.mode, 'vault');
+    assert.strictEqual(cleanPinnedLink.token, 'ash-fox-42');
+    assert.strictEqual(cleanPinnedLink.frag, '');
+
+    // Clean query URL with Nano-Seed fragment
+    const querySeedLink = BlackendCrypto.parseLink('', '?m=ember-lynx-99', '#n.7xK9pQ_89');
+    assert.strictEqual(querySeedLink.mode, 'vault');
+    assert.strictEqual(querySeedLink.token, 'ember-lynx-99');
+    assert.strictEqual(querySeedLink.frag, 'n.7xK9pQ_89');
+
+    // Direct In-Link
+    const directLink = BlackendCrypto.parseLink('', '', '#k1.abc.def.ghi');
     assert.strictEqual(directLink.mode, 'direct');
     assert.strictEqual(directLink.parts.length, 4);
 
-    const vaultLink = BlackendCrypto.parseLink('?m=9f3ab2c1e4d86f07a1b2c3d4e5f60718', '#k1.secretkey');
-    assert.strictEqual(vaultLink.mode, 'vault');
-    assert.strictEqual(vaultLink.token, '9f3ab2c1e4d86f07a1b2c3d4e5f60718');
-    assert.strictEqual(vaultLink.frag, 'k1.secretkey');
-
-    console.log('[PASS] Link classifier accurately identifies Direct vs Escrow links');
+    console.log('[PASS] Link classifier accurately identifies clean URLs, query parameters, and fragments');
   }
 
-  // Test 2.6: QR Code Generator
+  // Test 2.7: QR Code Generator
   {
-    const qrSvg = BlackendQR.renderSVG('https://blackend.on/?m=9f3ab2c1e4d86f07#k1.Z8Vgr3mbC88');
+    const qrSvg = BlackendQR.renderSVG('https://blackend.on/v/ash-fox-42');
     assert(qrSvg, 'QR SVG must be generated');
     assert(qrSvg.svg.includes('<svg'), 'QR SVG output must contain <svg tag');
     assert(qrSvg.q.size >= 21, 'QR matrix size must be valid');

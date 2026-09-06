@@ -99,7 +99,7 @@ body.net-off #net {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.28s;
-  z-index: 44;
+  z-index: 43; /* just below popovers (z-index 48), above regular content */
 }
 
 #scrim.on {
@@ -1086,12 +1086,15 @@ main {
   background: var(--sur2);
   border: 1px solid var(--line2);
   border-radius: 16px;
-  z-index: 6;
+  /* Must be above #scrim (z-index 43) so PIN inputs are reachable */
+  z-index: 48;
   box-shadow: 0 22px 55px -18px rgba(0, 0, 0, 0.75);
   opacity: 0;
   transform: translateY(6px) scale(0.97);
   transform-origin: bottom center;
   transition: opacity 0.2s, transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+  /* Ensure inputs inside are always clickable */
+  isolation: isolate;
 }
 
 .pop.in {
@@ -2759,12 +2762,24 @@ body.set-open .setpanel {
     background: linear-gradient(180deg, transparent, rgba(10, 11, 14, 0.6) 26%, #0a0b0e 90%);
   }
   .stage::before { inset: -60px -60px; }
+  /* Popovers: fixed on mobile to escape stacking context of .stage.docked */
   .pop {
-    left: 8px !important;
-    right: 8px !important;
+    position: fixed !important;
+    bottom: auto !important;
+    left: 12px !important;
+    right: 12px !important;
+    top: auto !important;
     width: auto !important;
-    max-height: 56vh;
-    overflow: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform-origin: bottom center;
+    /* Ensure above scrim */
+    z-index: 48 !important;
+  }
+  /* Anchor pop to bottom of viewport with safe area */
+  .pop.in {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
   }
   #ta, .chars { font-size: 16px; }
   .ibtn { width: 40px; height: 40px; }
@@ -2780,6 +2795,25 @@ body.set-open .setpanel {
   .share-qr { order: 0; }
   .qr-tile { width: 216px; }
   .wlab { display: none; }
+
+  /* Gate card: full-width, no clip on small screens */
+  #paneGate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    padding: 0 4px;
+  }
+  .gatecard {
+    width: 100%;
+    padding: 24px 18px;
+  }
+
+  /* Improve link display in share card */
+  .cf-text {
+    font-size: 11px;
+    word-break: break-all;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2787,12 +2821,30 @@ body.set-open .setpanel {
   .arow em { grid-column: 2; }
   .pbox { width: 42px; height: 50px; }
   .mt-brand { display: none; }
+
+  /* Share card: go single column on very small screens */
+  .share-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .share-qr { order: 1; } /* QR below link on tiny screens */
+  .qr-tile { width: 190px; margin: 0 auto; }
+
+  /* Gatecard tighter on tiny screens */
+  .gatecard { padding: 20px 14px; }
+  .pin-row { gap: 8px; }
+  .pbox { width: 40px; height: 48px; font-size: 18px; }
 }
 
 @media (max-width: 420px) {
-  .qr-tile { width: 196px; }
+  .qr-tile { width: 186px; }
   .receipt { padding: 16px 14px 14px; }
   .share { padding: 14px; }
+
+  /* Hero section compacted */
+  .hero { padding: 32px 0 8px; }
+  .h1 { font-size: clamp(28px, 8vw, 42px); }
+  .sub { font-size: 14px; }
 }
 
 @media (max-height: 560px) {
@@ -2800,8 +2852,56 @@ body.set-open .setpanel {
   .sec { padding: 56px 0 0; }
 }
 
+@media (max-height: 700px) and (max-width: 900px) {
+  /* Landscape phone: compress hero more */
+  .hero { padding: 20px 0 8px; }
+  .h1 { font-size: 28px; }
+  .sub { display: none; }
+
+  /* Make stage not push content too far */
+  .stage { margin-top: 14px; }
+
+  /* Pop anchors lower when keyboard visible */
+  .pop.in {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+  }
+}
+
+/* ── Ensure paneGate is always scrollable on all heights ── */
+#paneGate {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Improve tap target size throughout (WCAG 2.5.5) ── */
 @media (pointer: coarse) {
   [data-tip]::after { display: none; }
+
+  /* Larger tap zones for icon buttons */
+  .ibtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .send {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  /* Expiry rows are easy to tap */
+  .exp-row {
+    padding: 14px 16px;
+    min-height: 48px;
+  }
+
+  /* PIN boxes: extra tap surface */
+  .pbox {
+    min-height: 52px;
+  }
+
+  /* Copyfield: bigger hit area */
+  .copyfield {
+    padding: 14px 12px 14px 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

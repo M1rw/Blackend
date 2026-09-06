@@ -7,6 +7,16 @@ final class Vault
     private string $dir;
     private string $key;
 
+    // Poetic Diceware Codename word pools for creative URLs
+    private const ADJECTIVES = [
+        'ash', 'dark', 'pale', 'silent', 'quiet', 'cold', 'ember', 'frost',
+        'hollow', 'neon', 'lunar', 'solar', 'shadow', 'swift', 'wild', 'ghost'
+    ];
+    private const NOUNS = [
+        'fox', 'wolf', 'lynx', 'raven', 'moth', 'falcon', 'otter', 'hare',
+        'viper', 'kite', 'heron', 'owl', 'stag', 'pike', 'crow', 'doe'
+    ];
+
     public function __construct(array $cfg)
     {
         $this->cfg = $cfg;
@@ -23,11 +33,31 @@ final class Vault
         }
     }
 
-    /* ---------- plumbing ---------- */
+    /* ---------- Plumbing & ID Generation ---------- */
+
+    /** Generates a creative nano-token (e.g. "ash-fox-42" or 6-char Base62 "7xK9pQ") */
+    public function generateId(): string
+    {
+        // 50% chance of creative poetic codename, 50% 6-char Base62
+        if (random_int(0, 1) === 1) {
+            $adj = self::ADJECTIVES[random_int(0, count(self::ADJECTIVES) - 1)];
+            $noun = self::NOUNS[random_int(0, count(self::NOUNS) - 1)];
+            $num = random_int(10, 99);
+            return "{$adj}-{$noun}-{$num}";
+        }
+
+        $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $res = '';
+        $bytes = random_bytes(6);
+        for ($i = 0; $i < 6; $i++) {
+            $res .= $chars[ord($bytes[$i]) % 62];
+        }
+        return $res;
+    }
 
     private function dirOf(string $id): string
     {
-        if (!preg_match('/^[A-Za-z0-9]{16,64}$/', $id)) {
+        if (!preg_match('/^[A-Za-z0-9_-]{4,64}$/', $id)) {
             throw new RuntimeException('bad id');
         }
         return $this->dir . '/' . $id;
@@ -167,8 +197,16 @@ final class Vault
 
     /* ---------- API Methods ---------- */
 
-    public function store(int $exp, bool $pin, int $nc, string $ivB64, string $ctB64): array
-    {
+    public function store(
+        int $exp,
+        bool $pin,
+        int $nc,
+        string $ivB64,
+        string $ctB64,
+        string $saltB64 = '',
+        string $wivB64 = '',
+        string $wrappedB64 = ''
+    ): array {
         $iv = self::b64d($ivB64);
         $ct = self::b64d($ctB64);
         if (strlen($iv) !== 12 || strlen($ct) < 16 || strlen($ct) > 65536) {
@@ -184,23 +222,37 @@ final class Vault
             throw new RuntimeException('too large');
         }
 
-        $id  = bin2hex(random_bytes(16));
+        // Generate clean creative short token
+        $id = $this->generateId();
         $dir = $this->dir . '/' . $id;
+        while (is_dir($dir)) {
+            $id = $this->generateId();
+            $dir = $this->dir . '/' . $id;
+        }
+
         if (!@mkdir($dir, 0770, true)) {
             throw new RuntimeException('mkdir');
         }
 
-        $env = $this->sealBlob(json_encode(['iv' => $ivB64, 'ct' => $ctB64]));
+        $envPayload = [
+            'iv'      => $ivB64,
+            'ct'      => $ctB64,
+            'salt'    => $saltB64,
+            'wiv'     => $wivB64,
+            'wrapped' => $wrappedB64
+        ];
+
+        $env = $this->sealBlob(json_encode($envPayload));
         $this->write($dir . '/env.bin', $env);
 
         $life = $exp > 0 ? min($exp, (int)$this->cfg['max_life']) : (int)$this->cfg['max_life'];
         $this->putMeta($dir, [
-            'v' => 1,
-            'exp' => time() + $life,
-            'pin' => $pin ? 1 : 0,
-            'nc' => $nc,
-            'tries' => 0,
-            'state' => $nc > 0 ? 'incomplete' : 'complete',
+            'v'       => 2,
+            'exp'     => time() + $life,
+            'pin'     => $pin ? 1 : 0,
+            'nc'      => $nc,
+            'tries'   => 0,
+            'state'   => $nc > 0 ? 'incomplete' : 'complete',
             'created' => time(),
         ]);
         return ['ok' => true, 'id' => $id];
@@ -276,11 +328,16 @@ final class Vault
             $m['read']  = time();
             $m['claim'] = time() + (int)$this->cfg['claim_window'];
             $this->putMeta($dir, $m);
+
             return [
-                'ok' => true,
-                'iv' => (string)$env['iv'],
-                'ct' => (string)$env['ct'],
-                'nc' => (int)$m['nc']
+                'ok'      => true,
+                'iv'      => (string)($env['iv'] ?? ''),
+                'ct'      => (string)($env['ct'] ?? ''),
+                'salt'    => (string)($env['salt'] ?? ''),
+                'wiv'     => (string)($env['wiv'] ?? ''),
+                'wrapped' => (string)($env['wrapped'] ?? ''),
+                'pin'     => !empty($m['pin']),
+                'nc'      => (int)$m['nc']
             ];
         } finally {
             $this->unlock($fp);
@@ -360,7 +417,7 @@ final class Vault
             if ($entry === '.' || $entry === '..' || $entry === '.htaccess') continue;
             
             // Validate token format safely
-            if (!preg_match('/^[A-Za-z0-9]{16,64}$/', $entry)) continue;
+            if (!preg_match('/^[A-Za-z0-9_-]{4,64}$/', $entry)) continue;
             
             $dir = $this->dir . '/' . $entry;
             if (!is_dir($dir)) continue;
@@ -401,7 +458,7 @@ final class Vault
                     continue;
                 }
             } catch (Throwable $e) {
-                // GC is best-effort and individual folder errors must not halt the sweep
+                // GC is best-effort
             }
         }
     }

@@ -664,17 +664,23 @@
     if (!MOBILE()) {
       const cr = composer.getBoundingClientRect();
       const ar = anchor.getBoundingClientRect();
-      const pw = pop.offsetWidth;
+      const pw = pop.offsetWidth || 272;
       let l = ar.left - cr.left + ar.width / 2 - pw / 2;
       l = clampN(l, 10, cr.width - pw - 10);
       pop.style.left = l + 'px';
+      pop.style.bottom = '';
     } else {
       pop.style.left = '';
+      pop.style.bottom = '';
     }
     popOpen = name;
     updateScrim();
-    requestAnimationFrame(() => pop.classList.add('in'));
-    if (name === 'pin') setTimeout(() => pinBoxes[0].focus(), 190);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => pop.classList.add('in'));
+    });
+    if (name === 'pin') setTimeout(() => {
+      try { pinBoxes[0].focus(); } catch (_) {}
+    }, 220);
   }
 
   function closePop(instant) {
@@ -843,8 +849,10 @@
 
         curToken = vaultToken;
         curFrag = vaultFrag;
-        linkUrl = location.origin + location.pathname + '?m=' + vaultToken + '#' + vaultFrag;
-        dispToken = vaultToken.slice(0, 6);
+        const basePath = location.pathname.replace(/\/index\.(php|html)$/i, '/');
+        const baseUrl = location.origin + (basePath.endsWith('/') ? basePath : basePath + '/');
+        linkUrl = vaultFrag ? `${baseUrl}?m=${vaultToken}#${vaultFrag}` : `${baseUrl}?m=${vaultToken}`;
+        dispToken = vaultToken;
       } else {
         // Vault unavailable or static mode: Fallback to Direct In-Link
         mode = 'direct';
@@ -931,14 +939,37 @@
     const qrResult = BlackendQR.renderSVG(linkUrl);
     lastQR = qrResult ? qrResult.q : null;
 
-    const shown = elide(linkUrl, 58);
-    const hi = shown.indexOf('#');
-    const qi = shown.indexOf('?m=');
-    const cf = qi >= 0 && hi > qi
-      ? escapeHTML(shown.slice(0, hi - 16)) + '…<b>' + escapeHTML(shown.slice(hi)) + '</b>'
-      : (hi >= 0
-        ? escapeHTML(shown.slice(0, hi)) + '<b>' + escapeHTML(shown.slice(hi)) + '</b>'
-        : escapeHTML(shown));
+    // Smart URL display: highlight the creative token or the # key fragment
+    const shown = elide(linkUrl, 64);
+    const hIdx = shown.indexOf('#');
+    const mIdx = shown.indexOf('?m=');
+    let cf;
+    if (mIdx >= 0 && hIdx < 0) {
+      // Zero-Hash PIN Shield: show URL with token highlighted, no fragment
+      const base = shown.slice(0, mIdx + 3);
+      const token = shown.slice(mIdx + 3);
+      cf = escapeHTML(base) + '<b>' + escapeHTML(token) + '</b>';
+    } else if (mIdx >= 0 && hIdx > mIdx) {
+      // Vault with nano-seed fragment: highlight the token
+      const base = shown.slice(0, mIdx + 3);
+      const token = shown.slice(mIdx + 3, hIdx);
+      const frag = shown.slice(hIdx);
+      cf = escapeHTML(base) + '<b>' + escapeHTML(token) + '</b>' + escapeHTML(frag);
+    } else if (hIdx >= 0) {
+      // Direct in-link: highlight fragment
+      cf = escapeHTML(shown.slice(0, hIdx)) + '<b>' + escapeHTML(shown.slice(hIdx)) + '</b>';
+    } else {
+      cf = escapeHTML(shown);
+    }
+
+    // Choose the right security explanation note
+    const isPinVault = mode === 'vault' && showPinBadge;
+    const isNanoVault = mode === 'vault' && !showPinBadge;
+    const secNote = isPinVault
+      ? 'PIN-wrapped key stored inside the vault — server cannot decrypt it. Link has <b>no fragment</b>. Three wrong attempts shred everything.'
+      : isNanoVault
+      ? 'the token points at noise in the vault. the compact seed after <b>#n.</b> never transmits — server shreds on first read.'
+      : 'everything after <b>#</b> never leaves the link — no browser transmits fragments. zero server storage.';
 
     panes.card.innerHTML = `
     <div class="share">
@@ -974,9 +1005,7 @@
             <span class="cf-text">${cf}</span>
             <span class="cf-ic" aria-hidden="true">${IC.copy}</span>
           </button>
-          <p class="sl-note">${mode === 'vault'
-            ? 'the token points at noise in the vault. the key after <b>#</b> never transmits, and the server shreds on first read.'
-            : 'everything after <b>#</b> never leaves the link — no browser transmits fragments. zero server storage.'}</p>
+          <p class="sl-note">${secNote}</p>
           <button class="btn primary" data-act="view">${IC.eye} view once</button>
           <div class="badges">
             <span class="badge">${IC.shield} ${mode === 'vault' ? 'vault escrow' : 'direct in-link'}</span>
@@ -1158,22 +1187,12 @@
 
   /* 1. Receive Vault Escrow Link */
   async function runReceiveVault(token, frag) {
-    const parts = (frag || '').split('.');
-    if (parts[0] !== 'k1' && parts[0] !== 'k2') {
-      buildEnd('tampered');
-      state = 'done';
-      await go('end');
-      setAvatarMode('ash');
-      clearURL();
-      return;
-    }
-
     curToken = token;
     const res = await api('fetch', { id: token });
 
-    if (!res.ok) {
-      const why = res.why === 'expired' ? 'expired' : 'archive';
-      markChat(currentChatId, 'ash', res.why === 'read' ? 'opened' : (res.why || 'ended'));
+    if (!res || !res.ok) {
+      const why = (res && res.why === 'expired') ? 'expired' : 'archive';
+      markChat(currentChatId, 'ash', (res && res.why === 'read') ? 'opened' : ((res && res.why) || 'ended'));
       buildEnd(why);
       state = 'done';
       await go('end');
@@ -1186,13 +1205,18 @@
       type: 'vault',
       token,
       frag,
+      envelope: res,
       iv: res.iv,
       ct: res.ct,
-      nc: res.nc,
-      parts
+      salt: res.salt,
+      wiv: res.wiv,
+      wrapped: res.wrapped,
+      pin: !!res.pin,
+      nc: res.nc
     };
 
-    if (parts[0] === 'k2') {
+    // If PIN is required (Zero-Hash PIN Shield envelope or legacy k2)
+    if (res.wrapped || res.pin || (frag && frag.startsWith('k2.'))) {
       attempts = 3;
       state = 'gate';
       setAvatarMode('gate');
@@ -1260,8 +1284,7 @@
       if (rxContext.type === 'vault') {
         try {
           const { obj, kb } = await BlackendCrypto.decryptVaultPayload(
-            rxContext.iv,
-            rxContext.ct,
+            rxContext.envelope || rxContext,
             rxContext.frag,
             code
           );
@@ -1336,8 +1359,7 @@
   async function startViewVault() {
     try {
       const { obj, kb } = await BlackendCrypto.decryptVaultPayload(
-        rxContext.iv,
-        rxContext.ct,
+        rxContext.envelope || rxContext,
         rxContext.frag,
         null
       );
@@ -1377,7 +1399,9 @@
     setAvatarMode('view');
     mOpen.textContent = `opened ${utcHM()} utc`;
 
-    if (obj.x && Date.now() / 1000 > obj.x + 3) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const isExpired = obj.x && (obj.x > 1000000000 && nowSec > (obj.x + 3));
+    if (isExpired) {
       markChat(currentChatId, 'ash', 'expired');
       buildEnd('expired');
       await go('end');
@@ -1618,8 +1642,8 @@
     } else {
       curToken = c.id;
       curFrag = c.u ? (c.u.split('#')[1] || '') : '';
-      linkUrl = c.u || (location.origin + location.pathname + '?m=' + c.id + '#' + curFrag);
-      dispToken = c.id.slice(0, 6);
+      linkUrl = c.u || (location.origin + location.pathname + '?m=' + c.id + (curFrag ? ('#' + curFrag) : ''));
+      dispToken = c.id;
     }
 
     expiry = c.e;
@@ -1885,7 +1909,7 @@
 
   /* ================= Receive On URL Load / Hash Change ================= */
   function tryReceive() {
-    const parsed = BlackendCrypto.parseLink(location.search, location.hash);
+    const parsed = BlackendCrypto.parseLink(location.pathname, location.search, location.hash);
     if (!parsed) return;
     if (state !== 'compose' && state !== 'done') return;
 
