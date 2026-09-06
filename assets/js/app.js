@@ -89,6 +89,21 @@
     return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
   };
 
+  function saveSettings() {
+    try {
+      localStorage.setItem('blackend_settings_v2', JSON.stringify(SET));
+      localStorage.setItem('blackend_accent', SET.accent);
+      localStorage.setItem('blackend_fuse', SET.fuse);
+      localStorage.setItem('blackend_burn_speed', SET.burn);
+      localStorage.setItem('blackend_burn_time', String(SET.burnTime));
+      localStorage.setItem('blackend_read_time', String(SET.readTime));
+      localStorage.setItem('blackend_attLimit', String(SET.attLimit));
+      for (const k of ['net', 'motes', 'autocopy', 'archive']) {
+        localStorage.setItem('blackend_set_' + k, SET[k] ? '1' : '0');
+      }
+    } catch (_) {}
+  }
+
   function applyAccent(name) {
     SET.accent = name;
     const a = ACCENTS[name] || ACCENTS.ember;
@@ -97,6 +112,7 @@
     rs.setProperty('--ember2', a[1]);
     rs.setProperty('--ember-rgb', h2r(a[0]));
     $$('.swatch').forEach(s => s.classList.toggle('on', s.dataset.acc === name));
+    saveSettings();
   }
 
   /* ================= Operator Identity & Pixel Avatar ================= */
@@ -324,7 +340,7 @@
 
   $('#swatches').addEventListener('click', e => {
     const b = e.target.closest('.swatch');
-    if (b) applyAccent(b.dataset.acc);
+    if (b) applyAccent(b.dataset.acc); // saves to LS inside applyAccent
   });
 
   $$('.sw2').forEach(b => b.addEventListener('click', () => {
@@ -332,13 +348,14 @@
     SET[k] = !SET[k];
     b.classList.toggle('on', SET[k]);
     b.setAttribute('aria-checked', String(SET[k]));
+    saveSettings();
     if (k === 'net' || k === 'motes') {
       BlackendCanvas.setConfig({ [k]: SET[k] });
     }
     if (k === 'archive') {
       toast(SET[k]
         ? 'messages will be filed locally in this browser.'
-        : 'new messages won’t be filed — links exist only where you share them.');
+        : 'new messages won\'t be filed — links exist only where you share them.');
     }
   }));
 
@@ -347,6 +364,7 @@
     if (!b) return;
     SET.attLimit = +b.dataset.att;
     [...$('#segAtt').children].forEach(x => x.classList.toggle('on', x === b));
+    saveSettings();
   });
 
   $('#segFuse').addEventListener('click', e => {
@@ -356,6 +374,7 @@
     expiry = SET.fuse;
     [...$('#segFuse').children].forEach(x => x.classList.toggle('on', x === b));
     syncFuseUI();
+    saveSettings();
   });
 
   const burnCustomWrap = $('#burnCustomWrap');
@@ -374,20 +393,90 @@
     if (burnInput) burnInput.value = bt.toFixed(1);
   }
 
-  try {
-    const savedBurn = localStorage.getItem('blackend_burn_speed');
-    if (savedBurn) SET.burn = savedBurn;
-    const savedTime = localStorage.getItem('blackend_burn_time');
-    if (savedTime) SET.burnTime = parseFloat(savedTime) || 2.0;
-  } catch (_) {}
+  const readSlider = $('#readSlider');
+  const readInput = $('#readInput');
+
+  function syncReadUI() {
+    const rt = parseFloat(SET.readTime) || 4;
+    if (readSlider) readSlider.value = Math.min(Math.max(rt, 1), 60);
+    if (readInput) readInput.value = Math.round(rt);
+  }
+
+  /* ---- Load ALL persisted settings on boot ---- */
+  (function loadPersistedSettings() {
+    try {
+      const raw = localStorage.getItem('blackend_settings_v2');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          Object.assign(SET, parsed);
+        }
+      }
+      const accent = localStorage.getItem('blackend_accent');
+      if (accent && ACCENTS[accent]) SET.accent = accent;
+
+      const savedBurn = localStorage.getItem('blackend_burn_speed');
+      if (savedBurn) SET.burn = savedBurn;
+      const savedTime = localStorage.getItem('blackend_burn_time');
+      if (savedTime) SET.burnTime = parseFloat(savedTime) || 2.0;
+
+      const savedReadTime = localStorage.getItem('blackend_read_time');
+      if (savedReadTime) SET.readTime = Math.max(1, parseFloat(savedReadTime) || 4);
+
+      const savedFuse = localStorage.getItem('blackend_fuse');
+      if (savedFuse) SET.fuse = savedFuse;
+
+      const savedAttLimit = localStorage.getItem('blackend_attLimit');
+      if (savedAttLimit) SET.attLimit = +savedAttLimit || 5;
+
+      // Boolean toggles (net, motes, autocopy, archive)
+      for (const k of ['net', 'motes', 'autocopy', 'archive']) {
+        const v = localStorage.getItem('blackend_set_' + k);
+        if (v !== null) SET[k] = v === '1';
+      }
+    } catch (_) {}
+
+    // Apply accent style
+    const a = ACCENTS[SET.accent] || ACCENTS.ember;
+    const rs = document.documentElement.style;
+    rs.setProperty('--ember', a[0]);
+    rs.setProperty('--ember2', a[1]);
+    rs.setProperty('--ember-rgb', h2r(a[0]));
+    $$('.swatch').forEach(s => s.classList.toggle('on', s.dataset.acc === SET.accent));
+
+    // Apply loaded booleans to the DOM toggles
+    $$('.sw2').forEach(b => {
+      const k = b.dataset.set;
+      if (k) {
+        b.classList.toggle('on', !!SET[k]);
+        b.setAttribute('aria-checked', String(!!SET[k]));
+      }
+    });
+
+    // Apply loaded fuse to the segment UI
+    [...$('#segFuse').children].forEach(x =>
+      x.classList.toggle('on', x.dataset.fuse === SET.fuse)
+    );
+
+    // Apply loaded attLimit to segment UI
+    [...$('#segAtt').children].forEach(x =>
+      x.classList.toggle('on', String(+x.dataset.att) === String(SET.attLimit))
+    );
+
+    // Canvas needs the loaded net/motes values
+    if (typeof BlackendCanvas !== 'undefined') {
+      BlackendCanvas.setConfig({ net: SET.net, motes: SET.motes });
+    }
+  })();
   syncBurnUI();
+  syncReadUI();
 
   $('#segBurn').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
     SET.burn = b.dataset.burn;
     syncBurnUI();
-    try { localStorage.setItem('blackend_burn_speed', SET.burn); } catch (_) {}
+    saveSettings();
   });
 
   if (burnSlider && burnInput) {
@@ -395,7 +484,7 @@
       const val = parseFloat(burnSlider.value);
       SET.burnTime = val;
       burnInput.value = val.toFixed(1);
-      try { localStorage.setItem('blackend_burn_time', String(val)); } catch (_) {}
+      saveSettings();
     });
 
     burnInput.addEventListener('input', () => {
@@ -404,7 +493,7 @@
         val = clampN(val, 0.1, 30.0);
         SET.burnTime = val;
         burnSlider.value = Math.min(val, 8.0);
-        try { localStorage.setItem('blackend_burn_time', String(val)); } catch (_) {}
+        saveSettings();
       }
     });
   }
@@ -422,27 +511,12 @@
   }
 
   /* --- Read Countdown Setting --- */
-  const readSlider = $('#readSlider');
-  const readInput = $('#readInput');
-
-  function syncReadUI() {
-    const rt = parseFloat(SET.readTime) || 4;
-    if (readSlider) readSlider.value = Math.min(Math.max(rt, 1), 60);
-    if (readInput) readInput.value = Math.round(rt);
-  }
-
-  try {
-    const savedReadTime = localStorage.getItem('blackend_read_time');
-    if (savedReadTime) SET.readTime = Math.max(1, parseFloat(savedReadTime) || 4);
-  } catch (_) {}
-  syncReadUI();
-
   if (readSlider && readInput) {
     readSlider.addEventListener('input', () => {
       const val = parseInt(readSlider.value, 10);
       SET.readTime = val;
       readInput.value = val;
-      try { localStorage.setItem('blackend_read_time', String(val)); } catch (_) {}
+      saveSettings();
     });
 
     readInput.addEventListener('input', () => {
@@ -451,7 +525,7 @@
         val = clampN(val, 1, 300);
         SET.readTime = val;
         readSlider.value = Math.min(val, 60);
-        try { localStorage.setItem('blackend_read_time', String(val)); } catch (_) {}
+        saveSettings();
       }
     });
   }
@@ -834,31 +908,28 @@
   /* ---------- PIN Boxes ---------- */
   function wireBoxes(boxes, onFull) {
     boxes.forEach((b, i) => {
-      // iOS: select all text on focus so re-tapping a filled box doesn't
-      // accidentally clear it — the next keypress replaces the selection
       b.addEventListener('focus', () => {
         setTimeout(() => b.select(), 0);
       });
 
-      // iOS: touchend focus is more reliable than click for bringing up keyboard
-      b.addEventListener('touchend', e => {
-        e.preventDefault();
-        b.focus();
-        setTimeout(() => b.select(), 50);
+      b.addEventListener('click', () => {
+        b.select();
       });
 
       b.addEventListener('input', () => {
         // Strip non-digits, keep only last typed digit
         const digit = b.value.replace(/\D/g, '').slice(-1);
         b.value = digit;
-        if (digit && i < boxes.length - 1) boxes[i + 1].focus();
+        if (digit && i < boxes.length - 1) {
+          boxes[i + 1].focus();
+          boxes[i + 1].select();
+        }
         if (boxes.every(x => x.value)) setTimeout(onFull, 240);
       });
 
       b.addEventListener('keydown', e => {
         if (e.key === 'Backspace') {
           if (b.value) {
-            // Clear current box — let input event handle, but do it manually
             b.value = '';
             e.preventDefault();
           } else if (i > 0) {
@@ -877,7 +948,7 @@
         if (i !== 0) return;
         e.preventDefault();
         const d = (e.clipboardData.getData('text').match(/\d/g) || []).slice(0, 4);
-        d.forEach((v, k) => boxes[k].value = v);
+        d.forEach((v, k) => { if (boxes[k]) boxes[k].value = v; });
         boxes[Math.min(d.length, boxes.length - 1)].focus();
         if (d.length === 4) onFull();
       });
@@ -1332,6 +1403,20 @@
     const res = await api('fetch', { id: token });
 
     if (!res || !res.ok) {
+      // Check if this vault token is currently in an active unexpired reading session
+      try {
+        const activeRaw = sessionStorage.getItem('blackend_active_read');
+        if (activeRaw) {
+          const s = JSON.parse(activeRaw);
+          const remMs = (s.exp || 0) - Date.now();
+          if (s.token === token && remMs > 800 && s.obj) {
+            rxContext = { type: 'vault', token, frag, obj: s.obj };
+            await renderDecryptedMessage(s.obj, null, Math.ceil(remMs / 1000));
+            return;
+          }
+        }
+      } catch (_) {}
+
       const why = (res && res.why === 'expired') ? 'expired' : 'archive';
       markChat(currentChatId, 'ash', (res && res.why === 'read') ? 'opened' : ((res && res.why) || 'ended'));
       buildEnd(why);
@@ -1535,7 +1620,7 @@
   }
 
   /* ---------- Render Decrypted Message View ---------- */
-  async function renderDecryptedMessage(obj, kb) {
+  async function renderDecryptedMessage(obj, kb, customCdSecs) {
     state = 'viewing';
     setAvatarMode('view');
     mOpen.textContent = `opened ${utcHM()} utc`;
@@ -1563,10 +1648,21 @@
     attSave.hidden = true;
 
     const baseReadTime = Math.max(1, parseFloat(SET.readTime) || 4);
-    const cdSecs = obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime;
+    const cdSecs = customCdSecs || (obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime);
     cdNum.textContent = cdSecs + 's';
     ringFg.classList.remove('run');
     ringFg.style.animationDuration = cdSecs + 's';
+    ringFg.style.animationPlayState = 'running';
+
+    // Store active read session in sessionStorage so page reload / tab switch restores it smoothly
+    const activeRead = {
+      token: (rxContext && rxContext.token) || null,
+      parts: (rxContext && rxContext.type === 'direct') ? rxContext.parts : null,
+      obj,
+      exp: Date.now() + cdSecs * 1000,
+      totalSecs: cdSecs
+    };
+    try { sessionStorage.setItem('blackend_active_read', JSON.stringify(activeRead)); } catch (_) {}
 
     if (obj.f) {
       attCardIc.innerHTML = attIcon(obj.f.t);
@@ -1609,15 +1705,84 @@
     }
 
     ringFg.classList.add('run');
-    let cd = cdSecs;
-    const cdTimer = setInterval(() => {
-      if (--cd > 0) cdNum.textContent = cd + 's';
-    }, 1000);
 
-    setTimeout(() => {
-      clearInterval(cdTimer);
+    let cdRemaining = cdSecs * 1000;
+    let cdEnd = Date.now() + cdRemaining;
+    let cdTick = null;
+    let cdHandle = null;
+    let cdPaused = false;
+
+    function cdFire() {
+      if (cdTick) { clearInterval(cdTick); cdTick = null; }
+      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
+      try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
       finishViewing();
-    }, cdSecs * 1000);
+    }
+
+    function cdUpdateTick() {
+      const now = Date.now();
+      const rem = Math.max(0, cdEnd - now);
+      const remSec = Math.ceil(rem / 1000);
+      cdNum.textContent = remSec + 's';
+      if (rem <= 0) {
+        cdFire();
+      }
+    }
+
+    function cdPause() {
+      if (cdPaused || state !== 'viewing') return;
+      cdPaused = true;
+      cdRemaining = Math.max(0, cdEnd - Date.now());
+      if (cdTick) { clearInterval(cdTick); cdTick = null; }
+      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
+      ringFg.style.animationPlayState = 'paused';
+      try {
+        const raw = sessionStorage.getItem('blackend_active_read');
+        if (raw) {
+          const s = JSON.parse(raw);
+          s.exp = Date.now() + cdRemaining;
+          sessionStorage.setItem('blackend_active_read', JSON.stringify(s));
+        }
+      } catch (_) {}
+    }
+
+    function cdResume() {
+      if (!cdPaused || state !== 'viewing') return;
+      cdPaused = false;
+      if (cdRemaining <= 0) {
+        cdFire();
+        return;
+      }
+      cdEnd = Date.now() + cdRemaining;
+      cdNum.textContent = Math.ceil(cdRemaining / 1000) + 's';
+      ringFg.style.animationPlayState = 'running';
+      cdTick = setInterval(cdUpdateTick, 250);
+      cdHandle = setTimeout(cdFire, cdRemaining);
+    }
+
+    const onVisibility = () => {
+      if (document.hidden) cdPause(); else cdResume();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', cdPause);
+    window.addEventListener('pageshow', cdResume);
+    window.addEventListener('blur', cdPause);
+    window.addEventListener('focus', cdResume);
+
+    // Store cleanup handle on a module-level variable so finishViewing can clean up
+    window.__cdCleanup = () => {
+      if (cdTick) { clearInterval(cdTick); cdTick = null; }
+      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', cdPause);
+      window.removeEventListener('pageshow', cdResume);
+      window.removeEventListener('blur', cdPause);
+      window.removeEventListener('focus', cdResume);
+    };
+
+    cdTick = setInterval(cdUpdateTick, 250);
+    cdHandle = setTimeout(cdFire, cdRemaining);
   }
 
   async function pullVaultChunks(tokenId, keyBytes, fileMeta) {
@@ -1633,6 +1798,9 @@
 
   async function finishViewing() {
     if (state !== 'viewing') return;
+    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
+    // Clean up the pauseable countdown timers and visibilitychange listener
+    if (typeof window.__cdCleanup === 'function') { window.__cdCleanup(); window.__cdCleanup = null; }
     state = 'burning';
     setAvatarMode('burn');
 
@@ -1726,6 +1894,9 @@
     stopFuse();
     stopPoll();
     closePop();
+    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
+    // Cancel any in-progress read countdown
+    if (typeof window.__cdCleanup === 'function') { window.__cdCleanup(); window.__cdCleanup = null; }
     pin = null;
     btnPin.classList.remove('on');
     pinRemove.hidden = true;
@@ -1884,6 +2055,7 @@
     await Promise.allSettled(vaultIds.map(id => api('burn', { id, why: 'wiped' })));
 
     try { localStorage.removeItem(LSKEY); } catch (_) {}
+    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
     chats = [];
     currentChatId = null;
     linkUrl = '';
@@ -2028,8 +2200,14 @@
     $$('.rv, .rv-stagger').forEach(el => el.classList.add('in'));
   }
 
+  let lastInnerW = window.innerWidth;
   window.addEventListener('resize', () => {
-    closePop();
+    const activeEl = document.activeElement;
+    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+    if (Math.abs(window.innerWidth - lastInnerW) > 50 && !isEditing) {
+      closePop();
+      lastInnerW = window.innerWidth;
+    }
     syncDock();
     grow();
     updateScrim();
@@ -2051,6 +2229,27 @@
 
   /* ================= Receive On URL Load / Hash Change ================= */
   function tryReceive() {
+    // Check if there is an active unexpired reading session in this browser tab
+    try {
+      const activeRaw = sessionStorage.getItem('blackend_active_read');
+      if (activeRaw) {
+        const s = JSON.parse(activeRaw);
+        const remMs = (s.exp || 0) - Date.now();
+        if (remMs > 800 && s.obj) {
+          rxContext = {
+            type: s.token ? 'vault' : 'direct',
+            token: s.token,
+            parts: s.parts,
+            obj: s.obj
+          };
+          renderDecryptedMessage(s.obj, null, Math.ceil(remMs / 1000));
+          return;
+        } else {
+          sessionStorage.removeItem('blackend_active_read');
+        }
+      }
+    } catch (_) {}
+
     const parsed = BlackendCrypto.parseLink(location.pathname, location.search, location.hash);
     if (!parsed) return;
     if (state !== 'compose' && state !== 'done') return;
