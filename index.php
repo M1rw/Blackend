@@ -139,10 +139,10 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
                   </button>
                 </div>
                 <div class="pin-row" id="pinRow">
-                  <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 1">
-                  <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 2">
-                  <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 3">
-                  <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 4">
+                  <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 1">
+                  <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 2">
+                  <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 3">
+                  <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 4">
                 </div>
                 <p class="pop-note" id="pinNote">Anyone opening the link will need this
                   4-digit code — it wraps the key with 120,000 PBKDF2 rounds.

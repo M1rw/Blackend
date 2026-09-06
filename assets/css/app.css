@@ -1164,6 +1164,10 @@ main {
   color: var(--ink);
   font: 600 20px var(--fh);
   caret-color: var(--ember);
+  /* iOS tel-input resets */
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pbox:focus {

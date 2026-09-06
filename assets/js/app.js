@@ -834,22 +834,45 @@
   /* ---------- PIN Boxes ---------- */
   function wireBoxes(boxes, onFull) {
     boxes.forEach((b, i) => {
+      // iOS: select all text on focus so re-tapping a filled box doesn't
+      // accidentally clear it — the next keypress replaces the selection
+      b.addEventListener('focus', () => {
+        setTimeout(() => b.select(), 0);
+      });
+
+      // iOS: touchend focus is more reliable than click for bringing up keyboard
+      b.addEventListener('touchend', e => {
+        e.preventDefault();
+        b.focus();
+        setTimeout(() => b.select(), 50);
+      });
+
       b.addEventListener('input', () => {
-        b.value = b.value.replace(/\D/g, '').slice(-1);
-        if (b.value && i < boxes.length - 1) boxes[i + 1].focus();
+        // Strip non-digits, keep only last typed digit
+        const digit = b.value.replace(/\D/g, '').slice(-1);
+        b.value = digit;
+        if (digit && i < boxes.length - 1) boxes[i + 1].focus();
         if (boxes.every(x => x.value)) setTimeout(onFull, 240);
       });
+
       b.addEventListener('keydown', e => {
-        if (e.key === 'Backspace' && !b.value && i > 0) {
-          boxes[i - 1].focus();
-          boxes[i - 1].value = '';
-          e.preventDefault();
+        if (e.key === 'Backspace') {
+          if (b.value) {
+            // Clear current box — let input event handle, but do it manually
+            b.value = '';
+            e.preventDefault();
+          } else if (i > 0) {
+            boxes[i - 1].focus();
+            boxes[i - 1].value = '';
+            e.preventDefault();
+          }
         }
         if (e.key === 'Enter' && boxes.every(x => x.value)) {
           e.preventDefault();
           onFull();
         }
       });
+
       b.addEventListener('paste', e => {
         if (i !== 0) return;
         e.preventDefault();
@@ -1381,10 +1404,10 @@
         <h3 class="g-t">PIN required</h3>
         <p class="g-sub" id="gSub"><b id="gAtt">3</b> attempts remaining</p>
         <div class="pin-row" id="gRow">
-          <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 1">
-          <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 2">
-          <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 3">
-          <input class="pbox" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN digit 4">
+          <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 1">
+          <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 2">
+          <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 3">
+          <input class="pbox" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN digit 4">
         </div>
         <button class="g-cancel" id="gCancel">${fromSender ? 'back to the link' : 'not now'}</button>
       </div>`;
