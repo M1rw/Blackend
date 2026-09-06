@@ -20,7 +20,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css">
 <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
@@ -421,10 +421,10 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
 <div id="toasts" role="status" aria-live="polite"></div>
 
 <!-- Modular Scripts -->
-<script src="assets/js/crypto.js"></script>
-<script src="assets/js/qrenc.js"></script>
-<script src="assets/js/canvas.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="/assets/js/crypto.js"></script>
+<script src="/assets/js/qrenc.js"></script>
+<script src="/assets/js/canvas.js"></script>
+<script src="/assets/js/app.js"></script>
 
 </body>
 </html>
