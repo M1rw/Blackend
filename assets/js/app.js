@@ -48,7 +48,7 @@
   /* ================= Backend API Bridge ================= */
   async function api(action, body) {
     try {
-      const r = await fetch('vault.php', {
+      const r = await fetch('/vault.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.assign({ action }, body || {}))

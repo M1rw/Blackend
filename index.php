@@ -13,6 +13,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<base href="/">
 <title>blackend — the chat that forgets</title>
 <meta name="description" content="Serverless end-to-end temporary messaging with blind escrow vault. The encrypted key stays inside the link — one read, then ash. No accounts, no tracking, no permanent storage.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230a0b0e'/><circle cx='16' cy='16' r='5' fill='%23ffb454'/></svg>">

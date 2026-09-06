@@ -1,0 +1,20 @@
+{
+  "name": "blackend",
+  "version": "2.0.0",
+  "description": "Serverless end-to-end encrypted temporary messaging with blind escrow vault",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node tests/test_crypto.js"
+  },
+  "keywords": [
+    "encryption",
+    "webcrypto",
+    "aes-gcm",
+    "ephemeral-messaging",
+    "zero-knowledge",
+    "privacy"
+  ],
+  "license": "MIT"
+}

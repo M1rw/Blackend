@@ -7,8 +7,23 @@
   },
   "routes": [
     {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
       "src": "/vault.php",
       "dest": "/api/vault.php"
+    },
+    {
+      "src": "/api/vault.php",
+      "dest": "/api/vault.php"
+    },
+    {
+      "src": "/v/(.*)",
+      "dest": "/api/index.php"
     },
     {
       "src": "/(.*)",
