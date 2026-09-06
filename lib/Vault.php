@@ -176,9 +176,17 @@ final class Vault
         return in_array($w, ['read', 'expired', 'killed', 'wiped'], true) ? $w : 'killed';
     }
 
-    /** Full destruction, leaving status tombstone */
+    /** Full destruction, leaving status tombstone.
+     *  Preserves receipt-relevant fields (rk_hash, created, opened)
+     *  so the sender can still verify the chain-of-custody after burn. */
     private function destroy(string $dir, string $why): void
     {
+        // Snapshot receipt fields from meta BEFORE shredding it
+        $m        = $this->meta($dir);
+        $rkHash   = $m ? ($m['rk_hash']  ?? null) : null;
+        $created  = $m ? (int)($m['created'] ?? 0) : 0;
+        $openedAt = $m ? (int)($m['read']    ?? 0) : 0;
+
         $files = array_diff(scandir($dir) ?: [], ['.', '..']);
         foreach ($files as $f) {
             if ($f === 'lock' || $f === 'tombstone.json') continue;
@@ -189,9 +197,18 @@ final class Vault
                 $this->shred($path);
             }
         }
+
+        $tombstone = [
+            'why'     => $this->whyOk($why),
+            't'       => time(),
+            'created' => $created ?: null,
+            'opened'  => $openedAt ?: null,
+        ];
+        if ($rkHash) $tombstone['rk_hash'] = $rkHash;
+
         @file_put_contents(
             $dir . '/tombstone.json',
-            json_encode(['why' => $this->whyOk($why), 't' => time()])
+            json_encode($tombstone)
         );
     }
 
@@ -203,9 +220,11 @@ final class Vault
         int $nc,
         string $ivB64,
         string $ctB64,
-        string $saltB64 = '',
-        string $wivB64 = '',
-        string $wrappedB64 = ''
+        string $saltB64    = '',
+        string $wivB64     = '',
+        string $wrappedB64 = '',
+        array  $settings   = [],   // public per-message display settings (unencrypted)
+        string $rkHash     = ''    // SHA-256 hash of sender's receipt key
     ): array {
         $iv = self::b64d($ivB64);
         $ct = self::b64d($ctB64);
@@ -245,15 +264,39 @@ final class Vault
         $env = $this->sealBlob(json_encode($envPayload));
         $this->write($dir . '/env.bin', $env);
 
+        // Whitelist and sanitise public display settings
+        $safeSettings   = [];
+        $allowedAccents = ['ember', 'crimson', 'mint', 'ice'];
+        $allowedBurns   = ['calm', 'quick', 'custom'];
+        if (!empty($settings['accent']) && in_array($settings['accent'], $allowedAccents, true))
+            $safeSettings['accent']   = $settings['accent'];
+        if (!empty($settings['burn']) && in_array($settings['burn'], $allowedBurns, true))
+            $safeSettings['burn']     = $settings['burn'];
+        if (isset($settings['burnTime'])) {
+            $bt = (float)$settings['burnTime'];
+            if ($bt >= 0.2 && $bt <= 30.0) $safeSettings['burnTime'] = round($bt, 2);
+        }
+        if (isset($settings['readTime'])) {
+            $rt = (int)$settings['readTime'];
+            if ($rt >= 1 && $rt <= 300) $safeSettings['readTime'] = $rt;
+        }
+
+        // Validate receipt key hash: base64url SHA-256 is always 43 chars
+        $safeRkHash = '';
+        if ($rkHash && preg_match('/^[A-Za-z0-9_-]{43,44}$/', $rkHash))
+            $safeRkHash = $rkHash;
+
         $life = $exp > 0 ? min($exp, (int)$this->cfg['max_life']) : (int)$this->cfg['max_life'];
         $this->putMeta($dir, [
-            'v'       => 2,
-            'exp'     => time() + $life,
-            'pin'     => $pin ? 1 : 0,
-            'nc'      => $nc,
-            'tries'   => 0,
-            'state'   => $nc > 0 ? 'incomplete' : 'complete',
-            'created' => time(),
+            'v'        => 2,
+            'exp'      => time() + $life,
+            'pin'      => $pin ? 1 : 0,
+            'nc'       => $nc,
+            'tries'    => 0,
+            'state'    => $nc > 0 ? 'incomplete' : 'complete',
+            'created'  => time(),
+            'settings' => $safeSettings ?: null,
+            'rk_hash'  => $safeRkHash  ?: null,
         ]);
         return ['ok' => true, 'id' => $id];
     }
@@ -331,23 +374,30 @@ final class Vault
             }
 
             $env = json_decode($this->openBlob((string)file_get_contents($envP)), true);
-            if (empty($m['read'])) {
+            $alreadyRead = !empty($m['read']);
+            $isPin = !empty($m['pin']);
+
+            // Non-PIN envelopes claim on fetch. PIN-protected envelopes claim upon PIN unlock (open).
+            if (empty($m['read']) && !$isPin) {
                 $m['read']  = time();
                 $m['claim'] = time() + (int)$this->cfg['claim_window'];
                 $this->putMeta($dir, $m);
             }
 
             return [
-                'ok'      => true,
-                'iv'      => (string)($env['iv'] ?? ''),
-                'ct'      => (string)($env['ct'] ?? ''),
-                'salt'    => (string)($env['salt'] ?? ''),
-                'wiv'     => (string)($env['wiv'] ?? ''),
-                'wrapped' => (string)($env['wrapped'] ?? ''),
-                'pin'     => !empty($m['pin']),
-                'nc'      => (int)$m['nc'],
-                'read'    => (int)$m['read'],
-                'claim'   => (int)$m['claim']
+                'ok'           => true,
+                'iv'           => (string)($env['iv'] ?? ''),
+                'ct'           => (string)($env['ct'] ?? ''),
+                'salt'         => (string)($env['salt'] ?? ''),
+                'wiv'          => (string)($env['wiv'] ?? ''),
+                'wrapped'      => (string)($env['wrapped'] ?? ''),
+                'pin'          => $isPin,
+                'nc'           => (int)$m['nc'],
+                'read'         => (int)($m['read'] ?? 0),
+                'claim'        => (int)($m['claim'] ?? 0),
+                'already_read' => $alreadyRead,
+                'settings'     => $m['settings'] ?? null,  // sender display settings
+                'now'          => time()
             ];
         } finally {
             $this->unlock($fp);
@@ -381,6 +431,42 @@ final class Vault
         }
     }
 
+    /** Explicit open / claim when PIN is unlocked or message starts viewing */
+    public function open(string $id): array
+    {
+        $dir = $this->dirOf($id);
+        if (!is_dir($dir)) return ['ok' => false, 'why' => 'unknown'];
+        $fp = $this->lock($dir);
+        try {
+            $tomb = $dir . '/tombstone.json';
+            if (is_file($tomb)) {
+                $t = json_decode((string)@file_get_contents($tomb), true) ?: [];
+                return ['ok' => false, 'why' => (string)($t['why'] ?? 'read')];
+            }
+            $m = $this->meta($dir);
+            if (!$m || ($m['state'] ?? '') !== 'complete') return ['ok' => false, 'why' => 'unknown'];
+            if (time() > (int)$m['exp']) {
+                $this->destroy($dir, 'expired');
+                return ['ok' => false, 'why' => 'expired'];
+            }
+            $alreadyRead = !empty($m['read']);
+            if (empty($m['read'])) {
+                $m['read']  = time();
+                $m['claim'] = time() + (int)$this->cfg['claim_window'];
+                $this->putMeta($dir, $m);
+            }
+            return [
+                'ok'           => true,
+                'read'         => (int)$m['read'],
+                'claim'        => (int)$m['claim'],
+                'already_read' => $alreadyRead,
+                'now'          => time()
+            ];
+        } finally {
+            $this->unlock($fp);
+        }
+    }
+
     /** PIN attempt counting — limits brute force */
     public function fail(string $id): array
     {
@@ -408,19 +494,19 @@ final class Vault
         $tomb = $dir . '/tombstone.json';
         if (is_file($tomb)) {
             $t = json_decode((string)@file_get_contents($tomb), true) ?: [];
-            return ['ok' => true, 'state' => 'gone', 'why' => (string)($t['why'] ?? 'read')];
+            return ['ok' => true, 'state' => 'gone', 'why' => (string)($t['why'] ?? 'read'), 'now' => time()];
         }
         $m = $this->meta($dir);
-        if (!$m || ($m['state'] ?? '') !== 'complete') return ['ok' => true, 'state' => 'gone', 'why' => 'unknown'];
-        if (time() > (int)$m['exp']) return ['ok' => true, 'state' => 'gone', 'why' => 'expired'];
+        if (!$m || ($m['state'] ?? '') !== 'complete') return ['ok' => true, 'state' => 'gone', 'why' => 'unknown', 'now' => time()];
+        if (time() > (int)$m['exp']) return ['ok' => true, 'state' => 'gone', 'why' => 'expired', 'now' => time()];
         if (!empty($m['read'])) {
             if (time() > (int)($m['claim'] ?? 0)) {
                 $this->destroy($dir, 'read');
-                return ['ok' => true, 'state' => 'gone', 'why' => 'read'];
+                return ['ok' => true, 'state' => 'gone', 'why' => 'read', 'now' => time()];
             }
-            return ['ok' => true, 'state' => 'opened', 'read' => (int)$m['read']];
+            return ['ok' => true, 'state' => 'opened', 'read' => (int)$m['read'], 'now' => time()];
         }
-        return ['ok' => true, 'state' => 'sealed'];
+        return ['ok' => true, 'state' => 'sealed', 'now' => time()];
     }
 
     /** Robust garbage collection: safely purges expired tombstones and stale envelopes */
@@ -478,5 +564,104 @@ final class Vault
                 // GC is best-effort
             }
         }
+    }
+
+    /* ---------- Real-time SSE Watcher ---------- */
+
+    /**
+     * Streams server-sent events for a vault token until state reaches 'gone'
+     * or 55 seconds elapse (fits inside most proxy timeouts).
+     *
+     * Caller MUST have sent SSE-compatible HTTP headers before invoking this.
+     * Emits: data: {ok, state, why?, read?, now}\n\n
+     */
+    public function watch(string $id): void
+    {
+        $deadline  = time() + 55;
+        $lastState = null;
+        $hb        = 0;
+
+        while (time() < $deadline && !connection_aborted()) {
+            try {
+                $r     = $this->status($id);
+                $state = (string)($r['state'] ?? 'gone');
+
+                if ($state !== $lastState) {
+                    $lastState = $state;
+                    echo 'data: ' . json_encode($r, JSON_UNESCAPED_SLASHES) . "\n\n";
+                    flush();
+                    if ($state === 'gone') break;
+                }
+            } catch (Throwable $e) {
+                echo 'data: ' . json_encode(['ok' => false, 'state' => 'gone', 'why' => 'error', 'now' => time()]) . "\n\n";
+                flush();
+                break;
+            }
+
+            // Heartbeat every 10 s keeps proxies from closing the connection
+            if (++$hb % 10 === 0) {
+                echo ": heartbeat\n\n";
+                flush();
+            }
+
+            sleep(1);
+        }
+
+        if ($lastState !== 'gone') {
+            echo 'data: ' . json_encode(['ok' => true, 'state' => 'timeout', 'now' => time()]) . "\n\n";
+            flush();
+        }
+    }
+
+    /* ---------- Receipt Chain-of-Custody ---------- */
+
+    /**
+     * Returns a chain-of-custody audit trail for the sender.
+     * Validates that the caller knows the plaintext receipt key by checking its
+     * SHA-256 hash against the value stored at seal time.
+     *
+     * Returns: { ok, created, opened, burned, why, now }
+     */
+    public function receipt(string $id, string $rkHash): array
+    {
+        // Basic hash format guard (base64url SHA-256 = 43 chars)
+        if (!preg_match('/^[A-Za-z0-9_-]{43,44}$/', $rkHash)) {
+            return ['ok' => false, 'error' => 'invalid_key'];
+        }
+
+        try {
+            $dir   = $this->dirOf($id);
+        } catch (Throwable $e) {
+            return ['ok' => false, 'error' => 'invalid_key'];
+        }
+
+        $metaP = $dir . '/meta.json';
+        $tombP = $dir . '/tombstone.json';
+
+        $m    = is_file($metaP) ? $this->meta($dir) : null;
+        $tomb = is_file($tombP)
+            ? (json_decode((string)@file_get_contents($tombP), true) ?: [])
+            : null;
+
+        // Receipt key hash may live in live meta OR tombstone (preserved on destroy)
+        $storedHash = ($m['rk_hash'] ?? null) ?: ($tomb['rk_hash'] ?? null);
+
+        if (!$storedHash || !hash_equals((string)$storedHash, $rkHash)) {
+            return ['ok' => false, 'error' => 'invalid_key'];
+        }
+
+        $created  = (int)(($m['created'] ?? null) ?? ($tomb['created'] ?? 0));
+        $openedAt = (int)(($m['read']    ?? null) ?? ($tomb['opened']  ?? 0));
+        $burnedAt = $tomb ? (int)($tomb['t']   ?? 0) : 0;
+        $why      = $tomb ? (string)($tomb['why'] ?? '') : '';
+
+        return [
+            'ok'      => true,
+            'created' => $created,
+            'opened'  => $openedAt,
+            'burned'  => $burnedAt,
+            'why'     => $why ?: null,
+            'now'     => time(),
+        ];
     }
 }

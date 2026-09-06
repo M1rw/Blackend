@@ -452,6 +452,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
 
 <!-- Modular Scripts -->
 <script src="/assets/js/crypto.js"></script>
+<script src="/assets/js/backend.js"></script>
 <script src="/assets/js/qrenc.js"></script>
 <script src="/assets/js/canvas.js"></script>
 <script src="/assets/js/app.js"></script>

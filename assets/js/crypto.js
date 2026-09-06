@@ -94,7 +94,7 @@ const BlackendCrypto = (() => {
      - k2.iv.ct.salt.wiv.wrapped.att              (with pin, with attachment: 7 parts)
      ========================================================================= */
 
-  async function buildDirectPayload(msg, expSec, pin, file) {
+  async function buildDirectPayload(msg, expSec, pin, file, opts = {}) {
     const subtle = getSubtle();
     const key = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 
@@ -138,7 +138,17 @@ const BlackendCrypto = (() => {
     // Fix: Store absolute Unix timestamp (or 0 for 'after read')
     const expiresAt = expSec > 0 ? (Math.floor(Date.now() / 1000) + expSec) : 0;
     const iv = getRandomBytes(12);
-    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expiresAt, f: fileMeta }));
+    const payloadObj = {
+      m: msg,
+      x: expiresAt,
+      f: fileMeta
+    };
+    if (opts && opts.rt)     payloadObj.rt     = Math.max(1, parseFloat(opts.rt));
+    if (opts && opts.bt)     payloadObj.bt     = parseFloat(opts.bt);
+    if (opts && opts.bs)     payloadObj.bs     = String(opts.bs);
+    if (opts && opts.accent) payloadObj.accent = String(opts.accent); // sender accent travels with message
+
+    const pt = new TextEncoder().encode(JSON.stringify(payloadObj));
     const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
     const rawKb = new Uint8Array(await subtle.exportKey('raw', key));
 
@@ -218,7 +228,7 @@ const BlackendCrypto = (() => {
                  URL REQUIRES NO FRAGMENT AT ALL (# is omitted)!
      ========================================================================= */
 
-  async function buildVaultPayload(msg, expSec, pin, file) {
+  async function buildVaultPayload(msg, expSec, pin, file, opts = {}) {
     const subtle = getSubtle();
     let key;
     let seed = null;
@@ -259,7 +269,17 @@ const BlackendCrypto = (() => {
 
     // Fix: Store absolute Unix timestamp (or 0 for 'after read')
     const expiresAt = expSec > 0 ? (Math.floor(Date.now() / 1000) + expSec) : 0;
-    const pt = new TextEncoder().encode(JSON.stringify({ m: msg, x: expiresAt, f: fileMeta }));
+    const payloadObj = {
+      m: msg,
+      x: expiresAt,
+      f: fileMeta
+    };
+    if (opts && opts.rt)     payloadObj.rt     = Math.max(1, parseFloat(opts.rt));
+    if (opts && opts.bt)     payloadObj.bt     = parseFloat(opts.bt);
+    if (opts && opts.bs)     payloadObj.bs     = String(opts.bs);
+    if (opts && opts.accent) payloadObj.accent = String(opts.accent); // sender accent travels with message
+
+    const pt = new TextEncoder().encode(JSON.stringify(payloadObj));
     const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, pt));
     const rawKb = new Uint8Array(await subtle.exportKey('raw', key));
 

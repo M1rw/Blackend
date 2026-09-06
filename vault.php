@@ -58,6 +58,8 @@ $action = (string)($in['action'] ?? '');
 try {
     switch ($action) {
         case 'store':
+            // Extract public settings object (whitelisted inside Vault::store)
+            $rawSettings = is_array($in['settings'] ?? null) ? (array)$in['settings'] : [];
             out($vault->store(
                 (int)($in['exp'] ?? 0),
                 !empty($in['pin']),
@@ -66,7 +68,9 @@ try {
                 (string)($in['ct'] ?? ''),
                 (string)($in['salt'] ?? ''),
                 (string)($in['wiv'] ?? ''),
-                (string)($in['wrapped'] ?? '')
+                (string)($in['wrapped'] ?? ''),
+                $rawSettings,
+                (string)($in['rk'] ?? '')  // receipt key hash (SHA-256 of sender's rk)
             ));
 
         case 'put':
@@ -91,6 +95,9 @@ try {
                 (string)($in['why'] ?? 'killed')
             ));
 
+        case 'open':
+            out($vault->open((string)($in['id'] ?? '')));
+
         case 'fail':
             out($vault->fail((string)($in['id'] ?? '')));
 
@@ -99,6 +106,29 @@ try {
 
         case 'ping':
             out(['ok' => true, 'service' => 'blackend-vault', 'version' => '2.0.0']);
+
+        case 'watch':
+            // SSE streaming watcher — token stays in POST body, never in GET URL / access logs.
+            $watchId = (string)($in['id'] ?? '');
+            if (!preg_match('/^[A-Za-z0-9_-]{4,64}$/', $watchId)) {
+                out(['ok' => false, 'error' => 'bad id'], 400);
+            }
+            // Override JSON headers with SSE headers
+            header('Content-Type: text/event-stream; charset=utf-8');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('X-Accel-Buffering: no');   // disable nginx proxy buffering
+            header('X-Content-Type-Options: nosniff');
+            if (ob_get_level()) { ob_end_clean(); }
+            flush();
+            $vault->watch($watchId);
+            exit;
+
+        case 'receipt':
+            // Chain-of-custody audit for sender only — requires hashed receipt key.
+            out($vault->receipt(
+                (string)($in['id'] ?? ''),
+                (string)($in['rk'] ?? '')
+            ));
 
         default:
             out(['ok' => false, 'error' => 'unknown action'], 400);

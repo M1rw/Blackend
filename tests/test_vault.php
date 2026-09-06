@@ -59,13 +59,21 @@ assert($fetch['ok'] === true, 'Fetch must succeed on 1st read');
 assert($fetch['iv'] === $iv, 'Fetched IV must match');
 assert($fetch['ct'] === $ct, 'Fetched CT must match');
 assert($fetch['nc'] === 2, 'Fetched chunk count must match');
-echo "[PASS] Vault::fetch successfully returned envelope and started claim window\n";
+assert($fetch['already_read'] === false, 'First fetch must report already_read === false');
+assert(!empty($fetch['now']), 'Fetch must return now timestamp');
+echo "[PASS] Vault::fetch successfully returned envelope and started claim window (already_read=false)\n";
+
+// Test 4b: Status during active claim window is 'opened'
+$statusDuring = $vault->status($tokenId);
+assert($statusDuring['state'] === 'opened', 'Status during active claim window must be "opened"');
+echo "[PASS] Vault::status during active claim window confirmed 'opened' state\n";
 
 // Test 5: Re-fetch within active claim window succeeds (allows user to re-read/refresh before burn)
 $fetch2 = $vault->fetch($tokenId);
 assert($fetch2['ok'] === true, 'Second fetch within claim window MUST succeed before burn');
 assert($fetch2['ct'] === $ct, 'Second fetch CT must match');
-echo "[PASS] Active Claim Window Verified: Re-fetch before burn succeeded\n";
+assert($fetch2['already_read'] === true, 'Second fetch must report already_read === true');
+echo "[PASS] Active Claim Window Verified: Re-fetch before burn succeeded (already_read=true)\n";
 
 // Test 6: Chunk retrieval within claim window
 $chunk0 = $vault->chunk($tokenId, 0);
@@ -81,12 +89,31 @@ assert($fetchAfterBurn['ok'] === false, 'Fetch after burn MUST fail');
 assert($fetchAfterBurn['why'] === 'read', 'Failure reason after burn must be "read"');
 echo "[PASS] Vault::burn successfully destroyed envelope and left 'read' tombstone\n";
 
-// Test 8: PIN rate-limiting and kill
+// Test 8: PIN lifecycle: fetch does not claim, open transitions to opened
 $pinIv = base64_encode(random_bytes(12));
 $pinCt = base64_encode(random_bytes(64));
 $pinMsg = $vault->store(3600, true, 0, $pinIv, $pinCt);
 $pinId = $pinMsg['id'];
 
+// Initial fetch of PIN envelope should NOT start read claim window
+$pinFetch = $vault->fetch($pinId);
+assert($pinFetch['ok'] === true, 'PIN fetch must succeed');
+assert($pinFetch['pin'] === true, 'PIN flag must be true');
+assert($pinFetch['already_read'] === false, 'PIN initial fetch must have already_read false');
+assert($pinFetch['read'] === 0, 'PIN initial fetch must not set read time yet');
+$pinStatus1 = $vault->status($pinId);
+assert($pinStatus1['state'] === 'sealed', 'PIN envelope must remain sealed before PIN unlock');
+echo "[PASS] PIN envelope remains sealed on initial fetch until unlocked\n";
+
+// Unlocking with open() starts the claim window
+$pinOpen = $vault->open($pinId);
+assert($pinOpen['ok'] === true, 'Vault::open must succeed');
+assert($pinOpen['read'] > 0, 'Vault::open must set read timestamp');
+$pinStatus2 = $vault->status($pinId);
+assert($pinStatus2['state'] === 'opened', 'Status after open must be opened');
+echo "[PASS] Vault::open transitions PIN envelope to opened state\n";
+
+// Test 9: PIN rate-limiting and kill
 $fail1 = $vault->fail($pinId);
 assert($fail1['left'] === 2, 'First fail must leave 2 attempts');
 $fail2 = $vault->fail($pinId);

@@ -240,7 +240,7 @@
     }
   }
 
-  const subFor = c => c.s === 'sealed' ? 'sealed' : 'ash' + (c.r ? ` · ${c.r}` : '');
+  const subFor = c => c.s === 'sealed' ? 'sealed' : (c.s === 'opened' ? 'opened · reading' : 'ash' + (c.r ? ` · ${c.r}` : ''));
 
   function renderList() {
     const list = $('#chatList');
@@ -1033,10 +1033,25 @@
     let vaultFrag = '';
     let directPayload = '';
 
+    const cryptoOpts = { rt: SET.readTime, bt: SET.burnTime, bs: SET.burn, accent: SET.accent };
+
     try {
-      // 1. Try Escrow Vault mode first
-      const vaultData = await BlackendCrypto.buildVaultPayload(msgText, expSec, pin, targetFile);
-      const res = await api('store', vaultData.envelope);
+      // 1. Generate receipt key — hash stored server-side; plaintext kept only in sender's localStorage.
+      //    Even with full server access, nobody can query the audit trail without the plaintext rk.
+      let rk = '', rkHash = '', senderSettings = {};
+      try {
+        rk = VaultBackend.generateReceiptKey();
+        rkHash = await VaultBackend.hashReceiptKey(rk);
+        senderSettings = VaultBackend.packSettings(SET);
+      } catch (_) { /* non-fatal — message seals without receipt if WebCrypto unavailable */ }
+
+      // 2. Try Escrow Vault mode first
+      const vaultData = await BlackendCrypto.buildVaultPayload(msgText, expSec, pin, targetFile, cryptoOpts);
+      const res = await api('store', {
+        ...vaultData.envelope,
+        settings: senderSettings,
+        rk: rkHash
+      });
 
       if (res && res.ok && res.id) {
         vaultToken = res.id;
@@ -1061,6 +1076,8 @@
 
         curToken = vaultToken;
         curFrag = vaultFrag;
+        // Persist the receipt key locally — only the sender can verify the audit trail
+        if (rk) VaultBackend.saveReceiptKey(vaultToken, rk);
         const basePath = location.pathname.replace(/\/index\.(php|html)$/i, '/');
         const baseUrl = location.origin + (basePath.endsWith('/') ? basePath : basePath + '/');
         linkUrl = vaultFrag ? `${baseUrl}?m=${vaultToken}#${vaultFrag}` : `${baseUrl}?m=${vaultToken}`;
@@ -1068,7 +1085,7 @@
       } else {
         // Vault unavailable or static mode: Fallback to Direct In-Link
         mode = 'direct';
-        directPayload = await BlackendCrypto.buildDirectPayload(msgText, expSec, pin, targetFile);
+        directPayload = await BlackendCrypto.buildDirectPayload(msgText, expSec, pin, targetFile, cryptoOpts);
         curDirectPayload = directPayload;
         linkUrl = location.origin + location.pathname + '#' + directPayload;
         dispToken = directPayload.split('.')[2].slice(0, 6);
@@ -1078,7 +1095,7 @@
       // Direct in-link fallback
       try {
         mode = 'direct';
-        directPayload = await BlackendCrypto.buildDirectPayload(msgText, expSec, pin, targetFile);
+        directPayload = await BlackendCrypto.buildDirectPayload(msgText, expSec, pin, targetFile, cryptoOpts);
         curDirectPayload = directPayload;
         linkUrl = location.origin + location.pathname + '#' + directPayload;
         dispToken = directPayload.split('.')[2].slice(0, 6);
@@ -1229,6 +1246,18 @@
           </div>
         </div>
       </div>
+      ${mode === 'vault' && VaultBackend.loadReceiptKey(vaultToken) ? `
+      <div class="rcptwrap" id="rcptWrap">
+        <button class="svbtn" data-act="rcpt" aria-expanded="false">
+          ${IC.shield} delivery receipt ${IC.chev}
+        </button>
+        <div class="rcptbox" id="rcptBox" hidden>
+          <div class="sv" id="rcptTrail">
+            <div class="svrow"><span>chain</span><b>click verify to query the vault</b></div>
+          </div>
+          <button class="btn" data-act="rcpt-verify" style="margin-top:10px;font-size:0.82rem;padding:6px 14px">verify chain</button>
+        </div>
+      </div>` : ''}
       <div class="svwrap">
         <button class="svbtn" data-act="sv" aria-expanded="false">
           ${IC.server} what any server sees ${IC.chev}
@@ -1291,36 +1320,58 @@
     setAvatarMode('ash');
   }
 
-  /* Live Read Receipt Polling for Vault Links */
-  let pollTimer = null;
-  function startPoll() {
-    stopPoll();
-    if (!curToken) return;
-    pollTimer = setInterval(async () => {
-      if (state !== 'sealed' || !curToken) return;
-      const r = await api('status', { id: curToken });
-      if (r && r.state === 'gone') {
-        stopPoll();
-        const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : 'ended');
-        markChat(curToken, 'ash', reason);
-        const st = panes.card.querySelector('#cardStatus');
-        if (st) {
-          st.innerHTML = `<i class="dot ash"></i>${reason === 'opened' ? 'opened · burned' : escapeHTML(reason)}`;
-        }
-        if (reason === 'opened') {
-          sessEnded();
-          toast('it was opened — the vault copy is ash.');
-        }
-        setAvatarMode('ash');
+  /* ================= Live Read Receipt — SSE Streaming Watcher ================= */
+  /**
+   * Central handler for all vault status events, whether delivered by SSE stream
+   * or the poll fallback. Decoupled from the transport so VaultBackend.watch() can
+   * call it transparently.
+   */
+  function _onVaultEvent(r) {
+    if (!r || !r.ok) return;
+    if ((state !== 'sealed' && state !== 'opened') || !curToken) return;
+
+    if (r.state === 'opened') {
+      markChat(curToken, 'opened', 'reading');
+      stopFuse();
+      const st = panes.card.querySelector('#cardStatus');
+      if (st && !st.dataset.wasOpened) {
+        st.dataset.wasOpened = '1';
+        st.innerHTML = '<i class="dot opened"></i>opened · reading...';
+        toast('recipient opened the link — reading now.');
       }
-    }, 4000);
+      const fl = panes.card.querySelector('#fuseLabel');
+      if (fl) {
+        fl.textContent = 'opened';
+        fl.classList.remove('hot');
+      }
+    } else if (r.state === 'gone') {
+      VaultBackend.stopWatch();
+      const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : (r.why === 'killed' ? 'killed' : 'ended'));
+      markChat(curToken, 'ash', reason);
+      const st = panes.card.querySelector('#cardStatus');
+      if (st) {
+        st.innerHTML = `<i class="dot ash"></i>${reason === 'opened' ? 'opened · burned' : escapeHTML(reason)}`;
+      }
+      const fl = panes.card.querySelector('#fuseLabel');
+      if (fl) fl.hidden = true;
+      sessEnded();
+      if (reason === 'opened') {
+        toast('it was opened — the vault copy is ash.');
+      } else if (reason === 'killed') {
+        toast('PIN failed 3 times — vault copy destroyed.');
+      }
+      setAvatarMode('ash');
+    }
+  }
+
+  function startPoll() {
+    VaultBackend.stopWatch();
+    if (!curToken) return;
+    VaultBackend.watch(curToken, _onVaultEvent);
   }
 
   function stopPoll() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    VaultBackend.stopWatch();
   }
 
   /* Share Card Actions */
@@ -1334,11 +1385,22 @@
       sv.setAttribute('aria-expanded', String(open));
       return;
     }
+    // Receipt accordion toggle
+    const rcpt = e.target.closest('[data-act="rcpt"]');
+    if (rcpt) {
+      const box  = panes.card.querySelector('#rcptBox');
+      const open = !rcpt.classList.contains('open');
+      if (box) box.hidden = !open;
+      rcpt.classList.toggle('open', open);
+      rcpt.setAttribute('aria-expanded', String(open));
+      return;
+    }
     const b = e.target.closest('[data-act]');
     if (!b) return;
-    if (b.dataset.act === 'view') viewOnce();
-    if (b.dataset.act === 'copy') copyField(b);
-    if (b.dataset.act === 'png') downloadQR();
+    if (b.dataset.act === 'view')        viewOnce();
+    if (b.dataset.act === 'copy')        copyField(b);
+    if (b.dataset.act === 'png')         downloadQR();
+    if (b.dataset.act === 'rcpt-verify') doReceiptVerify();
   });
 
   function copyField(field) {
@@ -1378,6 +1440,35 @@
     }
     BlackendQR.downloadPNG(lastQR, 'blackend-' + (dispToken || 'message') + '.png');
     toast('Saved — one scan, one read, then ash.');
+  }
+
+  /* Receipt chain-of-custody verification — sender only */
+  async function doReceiptVerify() {
+    const trail = panes.card.querySelector('#rcptTrail');
+    const btn   = panes.card.querySelector('[data-act="rcpt-verify"]');
+    if (!trail || !curToken) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'verifying…'; }
+    const r = await VaultBackend.verifyReceipt(curToken);
+    if (btn) { btn.disabled = false; btn.textContent = 'verify chain'; }
+    if (!r || !r.ok) {
+      const msg = r && r.error === 'invalid_key' ? 'receipt key mismatch' : (r && r.error) || 'verification failed';
+      trail.innerHTML = `<div class="svrow"><span>error</span><b>${escapeHTML(msg)}</b></div>`;
+      return;
+    }
+    const fmtTS = ts => ts ? new Date(ts * 1000).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : '—';
+    const burnLabel = r.burned
+      ? (r.why === 'read'    ? 'burned after read'
+       : r.why === 'expired' ? 'expired unread'
+       : r.why === 'killed'  ? 'killed — 3× PIN fail'
+       : r.why === 'wiped'   ? 'wiped by sender'
+       : 'destroyed')
+      : 'pending';
+    trail.innerHTML = `
+      <div class="svrow"><span>created</span><b>${fmtTS(r.created)}</b></div>
+      <div class="svrow"><span>opened</span><b>${r.opened ? fmtTS(r.opened) : 'not yet'}</b></div>
+      <div class="svrow"><span>burned</span><b>${fmtTS(r.burned)}</b></div>
+      <div class="svrow"><span>reason</span><b>${escapeHTML(burnLabel)}</b></div>`;
+    toast('chain verified — cryptographic receipt confirmed.');
   }
 
   /* ================= Universal Receiver (In-Link & Vault) ================= */
@@ -1426,6 +1517,12 @@
       pin: !!res.pin,
       nc: res.nc
     };
+
+    // Apply sender's display settings (accent, burn animation, readTime) delivered via
+    // the vault's public metadata. Runs BEFORE gate or decrypt — Spain → Egypt works.
+    if (res.settings) {
+      VaultBackend.applyServerSettings(res.settings, SET, applyAccent);
+    }
 
     // If PIN is required (Zero-Hash PIN Shield envelope or legacy k2)
     if (res.wrapped || res.pin || (frag && frag.startsWith('k2.'))) {
@@ -1502,6 +1599,13 @@
           );
           rxContext.obj = obj;
           rxContext.kb = kb;
+          // Explicitly claim and transition to 'opened' state upon successful PIN unlock
+          const opRes = await api('open', { id: rxContext.token });
+          if (opRes && opRes.ok && rxContext.envelope) {
+            rxContext.envelope.read = opRes.read;
+            rxContext.envelope.now = opRes.now;
+            rxContext.envelope.already_read = false;
+          }
           await renderDecryptedMessage(obj, kb);
         } catch (_) {
           const srv = await api('fail', { id: rxContext.token });
@@ -1633,16 +1737,30 @@
     attCard.style.transition = '';
     attSave.hidden = true;
 
-    const baseReadTime = Math.max(1, parseFloat(SET.readTime) || 4);
+    // Use sender's configured read time if packed in message, fallback to local settings or default 4
+    const baseReadTime = Math.max(1, parseFloat(obj.rt) || parseFloat(SET.readTime) || 4);
     let cdSecs = customCdSecs || (obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime);
 
-    // Calculate remaining seconds if message was already opened on server (e.g. reload during reading window)
-    if (!customCdSecs && rxContext && rxContext.envelope && rxContext.envelope.read) {
-      const elapsedSec = Math.floor(Date.now() / 1000) - rxContext.envelope.read;
+    // If message had a timed expiry fuse (e.g. 60s), clamp read time to remaining fuse life
+    if (obj.x && obj.x > 1000000000) {
+      const fuseRemaining = Math.max(1, obj.x - nowSec);
+      cdSecs = Math.min(cdSecs, fuseRemaining);
+    }
+
+    // Only calculate remaining seconds if message was ALREADY opened on server previously (e.g. reload during reading window)
+    if (!customCdSecs && rxContext && rxContext.envelope && rxContext.envelope.already_read) {
+      const srvNow = rxContext.envelope.now || Math.floor(Date.now() / 1000);
+      const srvRead = rxContext.envelope.read || srvNow;
+      const elapsedSec = Math.max(0, srvNow - srvRead);
       if (elapsedSec > 0) {
         cdSecs = Math.max(1, cdSecs - elapsedSec);
       }
     }
+
+    // Apply sender burn speed, style, and accent (for direct-link cross-browser delivery)
+    if (obj.bt)     SET.burnTime = parseFloat(obj.bt);
+    if (obj.bs)     SET.burn     = obj.bs;
+    if (obj.accent) applyAccent(obj.accent);
 
     cdNum.textContent = cdSecs + 's';
     ringFg.classList.remove('run');
@@ -1735,7 +1853,22 @@
       if (document.hidden) cdPause(); else cdResume();
     };
 
+    const onBurnBeforeExit = () => {
+      if (state === 'viewing' && rxContext && rxContext.type === 'vault' && rxContext.token) {
+        try {
+          fetch('/vault.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'burn', id: rxContext.token, why: 'read' }),
+            keepalive: true
+          });
+        } catch (_) {}
+      }
+    };
+
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onBurnBeforeExit);
+    window.addEventListener('beforeunload', onBurnBeforeExit);
     window.addEventListener('pagehide', cdPause);
     window.addEventListener('pageshow', cdResume);
     window.addEventListener('blur', cdPause);
@@ -1746,6 +1879,8 @@
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
       if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onBurnBeforeExit);
+      window.removeEventListener('beforeunload', onBurnBeforeExit);
       window.removeEventListener('pagehide', cdPause);
       window.removeEventListener('pageshow', cdResume);
       window.removeEventListener('blur', cdPause);
@@ -1948,8 +2083,21 @@
 
     if (!isDirect) {
       api('status', { id: c.id }).then(r => {
-        if (state === 'sealed' && r && r.state === 'gone') {
-          const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : 'ended');
+        if (!r || !r.ok) return;
+        if (r.state === 'opened') {
+          markChat(c.id, 'opened', 'reading');
+          stopFuse();
+          const st = panes.card.querySelector('#cardStatus');
+          if (st) {
+            st.innerHTML = '<i class="dot opened"></i>opened · reading...';
+          }
+          const fl = panes.card.querySelector('#fuseLabel');
+          if (fl) {
+            fl.textContent = 'opened';
+            fl.classList.remove('hot');
+          }
+        } else if (r.state === 'gone') {
+          const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : (r.why === 'killed' ? 'killed' : 'ended'));
           markChat(c.id, 'ash', reason);
           stopFuse();
           stopPoll();
@@ -2212,10 +2360,38 @@
 
   window.addEventListener('hashchange', tryReceive);
 
+  /* ================= Background Sync for Archived Vault Chats ================= */
+  async function syncVaultChatsStatus() {
+    const activeVaultChats = chats.filter(c => (c.mode === 'vault' || !c.p) && (c.s === 'sealed' || c.s === 'opened'));
+    if (!activeVaultChats.length) return;
+    let changed = false;
+    for (const c of activeVaultChats) {
+      try {
+        const r = await api('status', { id: c.id });
+        if (r && r.ok) {
+          if (r.state === 'opened' && c.s !== 'opened') {
+            c.s = 'opened';
+            c.r = 'reading';
+            changed = true;
+          } else if (r.state === 'gone' && c.s !== 'ash') {
+            c.s = 'ash';
+            c.r = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : (r.why === 'killed' ? 'killed' : 'ended'));
+            changed = true;
+          }
+        }
+      } catch (_) {}
+    }
+    if (changed) {
+      persist();
+      renderList();
+    }
+  }
+
   /* ================= Application Initialization ================= */
   function initApp() {
     loadChats();
     renderList();
+    syncVaultChatsStatus();
     rerollIdentity();
     updateProfile();
     receiptSync();

@@ -9,6 +9,7 @@ const assert = require('assert');
 // 1. Verify all JS files parse without syntax errors
 const jsFiles = [
   'assets/js/crypto.js',
+  'assets/js/backend.js',
   'assets/js/qrenc.js',
   'assets/js/canvas.js',
   'assets/js/app.js'
@@ -30,6 +31,7 @@ jsFiles.forEach(file => {
 // Load modules in Node environment
 const BlackendCrypto = require('../assets/js/crypto.js');
 const BlackendQR = require('../assets/js/qrenc.js');
+const VaultBackend = require('../assets/js/backend.js');
 
 async function runTests() {
   console.log('\n=== 2. CRYPTO & DUAL-ENGINE TESTS ===');
@@ -149,6 +151,27 @@ async function runTests() {
     console.log('[PASS] Ultra-compact Nano-Seed HKDF envelope roundtrip');
   }
 
+  // Test 2.5b: Custom Read Time & Burn Options Roundtrip
+  {
+    const msg = 'Custom read time message';
+    const opts = { rt: 15, bt: 3.5, bs: 'ember' };
+    
+    // Test Vault payload with opts
+    const vData = await BlackendCrypto.buildVaultPayload(msg, 0, null, null, opts);
+    const { obj: vObj } = await BlackendCrypto.decryptVaultPayload(vData.envelope, vData.frag, null);
+    assert.strictEqual(vObj.rt, 15, 'Vault payload must preserve sender custom read time');
+    assert.strictEqual(vObj.bt, 3.5, 'Vault payload must preserve sender burn time');
+    assert.strictEqual(vObj.bs, 'ember', 'Vault payload must preserve sender burn style');
+
+    // Test Direct payload with opts
+    const dPayload = await BlackendCrypto.buildDirectPayload(msg, 0, null, null, opts);
+    const { obj: dObj } = await BlackendCrypto.decryptDirectPayload(dPayload.split('.'), null);
+    assert.strictEqual(dObj.rt, 15, 'Direct payload must preserve sender custom read time');
+    assert.strictEqual(dObj.bt, 3.5, 'Direct payload must preserve sender burn time');
+    assert.strictEqual(dObj.bs, 'ember', 'Direct payload must preserve sender burn style');
+    console.log('[PASS] Sender custom read time & burn options preserved across browsers');
+  }
+
   // Test 2.6: Link Classifier & Clean URLs
   {
     // Clean path URL with no fragment (Zero-Hash PIN Shield)
@@ -178,6 +201,37 @@ async function runTests() {
     assert(qrSvg.svg.includes('<svg'), 'QR SVG output must contain <svg tag');
     assert(qrSvg.q.size >= 21, 'QR matrix size must be valid');
     console.log('[PASS] QR Code byte-mode encoder and SVG renderer');
+  }
+
+  // Test 2.8: VaultBackend Receipt Key & Settings Delivery
+  {
+    // Receipt key generation & hashing
+    const rk = VaultBackend.generateReceiptKey();
+    assert(typeof rk === 'string', 'Receipt key must be string');
+    assert(rk.length >= 40, 'Receipt key must be ~43 chars (32 bytes base64url)');
+
+    const rkHash = await VaultBackend.hashReceiptKey(rk);
+    assert(typeof rkHash === 'string', 'Receipt key hash must be string');
+    assert.strictEqual(rkHash.length, 43, 'SHA-256 base64url hash must be 43 characters');
+
+    // Packing settings
+    const rawSettings = { accent: 'crimson', burn: 'quick', burnTime: 1.5, readTime: 10 };
+    const packed = VaultBackend.packSettings(rawSettings);
+    assert.strictEqual(packed.accent, 'crimson');
+    assert.strictEqual(packed.burn, 'quick');
+    assert.strictEqual(packed.burnTime, 1.5);
+    assert.strictEqual(packed.readTime, 10);
+
+    // Applying server settings to recipient state
+    const localSet = { accent: 'ember', burn: 'calm', burnTime: 2.0, readTime: 4 };
+    let appliedAccent = null;
+    VaultBackend.applyServerSettings(packed, localSet, (acc) => { appliedAccent = acc; });
+    assert.strictEqual(localSet.burn, 'quick');
+    assert.strictEqual(localSet.burnTime, 1.5);
+    assert.strictEqual(localSet.readTime, 10);
+    assert.strictEqual(appliedAccent, 'crimson');
+
+    console.log('[PASS] VaultBackend receipt key generation, SHA-256 hashing, and cross-browser settings sync');
   }
 
   console.log('\n>>> ALL AUTOMATED TESTS PASSED SUCCESSFULLY! <<<\n');

@@ -297,6 +297,12 @@ body.side-closed .mainwrap {
   box-shadow: 0 0 7px rgba(var(--ember-rgb), 0.5);
 }
 
+.chat.opened .c-dot {
+  background: #ff7a8a;
+  box-shadow: 0 0 8px rgba(255, 122, 138, 0.7);
+  animation: livePulse 1.2s infinite alternate ease-in-out;
+}
+
 .chat.ash .c-dot {
   background: #333c49;
 }
@@ -1263,6 +1269,7 @@ main {
 .share-head { animation-delay: 0.03s; }
 .s-filed    { animation-delay: 0.1s; }
 .share-body { animation-delay: 0.16s; }
+.rcptwrap   { animation-delay: 0.24s; }
 .svwrap     { animation-delay: 0.3s; }
 
 @keyframes sIn {
@@ -1296,9 +1303,26 @@ main {
   transition: background 0.3s, box-shadow 0.3s;
 }
 
+.s-status .dot.opened {
+  background: #ff7a8a;
+  box-shadow: 0 0 10px rgba(255, 122, 138, 0.85);
+  animation: livePulse 1.2s infinite alternate ease-in-out;
+}
+
 .s-status .dot.ash {
   background: #333c49;
   box-shadow: none;
+}
+
+@keyframes livePulse {
+  0% {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 
 .fuse {
@@ -1626,8 +1650,27 @@ main {
   height: 12px;
 }
 
+.rcptwrap {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.rcptbox {
+  padding-top: 4px;
+}
+
+.rcptbox[hidden] {
+  display: none !important;
+}
+
+.rcptbox .sv {
+  opacity: 1;
+  margin-top: 8px;
+}
+
 .svwrap {
-  margin-top: 18px;
+  margin-top: 14px;
   border-top: 1px solid var(--line);
   padding-top: 10px;
 }
