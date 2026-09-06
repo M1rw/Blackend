@@ -53,27 +53,35 @@ $statusBefore = $vault->status($tokenId);
 assert($statusBefore['state'] === 'sealed', 'Status before fetch must be sealed');
 echo "[PASS] Vault::status confirmed sealed state\n";
 
-// Test 4: Fetch (Single-Read Shredding)
+// Test 4: Fetch (Initial read starts claim window)
 $fetch = $vault->fetch($tokenId);
 assert($fetch['ok'] === true, 'Fetch must succeed on 1st read');
 assert($fetch['iv'] === $iv, 'Fetched IV must match');
 assert($fetch['ct'] === $ct, 'Fetched CT must match');
 assert($fetch['nc'] === 2, 'Fetched chunk count must match');
-echo "[PASS] Vault::fetch successfully returned envelope\n";
+echo "[PASS] Vault::fetch successfully returned envelope and started claim window\n";
 
-// Test 5: Verify immediate shredding on 2nd fetch attempt
+// Test 5: Re-fetch within active claim window succeeds (allows user to re-read/refresh before burn)
 $fetch2 = $vault->fetch($tokenId);
-assert($fetch2['ok'] === false, 'Second fetch MUST fail because envelope was shredded');
-assert($fetch2['why'] === 'read', 'Failure reason must be "read"');
-echo "[PASS] Single-Read Verified: Envelope was shredded and 2nd fetch failed with 'read'\n";
+assert($fetch2['ok'] === true, 'Second fetch within claim window MUST succeed before burn');
+assert($fetch2['ct'] === $ct, 'Second fetch CT must match');
+echo "[PASS] Active Claim Window Verified: Re-fetch before burn succeeded\n";
 
 // Test 6: Chunk retrieval within claim window
 $chunk0 = $vault->chunk($tokenId, 0);
 assert($chunk0['ok'] === true, 'Chunk 0 retrieval must succeed within claim window');
 assert($chunk0['data'] === $chunkData0, 'Decrypted chunk data must match uploaded data');
-echo "[PASS] Vault::chunk retrieval and at-rest decryption verified\n";
+echo "[PASS] Vault::chunk retrieval and single-read chunk delivery verified\n";
 
-// Test 7: PIN rate-limiting and kill
+// Test 7: Explicit Burn shreds envelope and chunks
+$burnRes = $vault->burn($tokenId, 'read');
+assert($burnRes['ok'] === true, 'Vault::burn must succeed');
+$fetchAfterBurn = $vault->fetch($tokenId);
+assert($fetchAfterBurn['ok'] === false, 'Fetch after burn MUST fail');
+assert($fetchAfterBurn['why'] === 'read', 'Failure reason after burn must be "read"');
+echo "[PASS] Vault::burn successfully destroyed envelope and left 'read' tombstone\n";
+
+// Test 8: PIN rate-limiting and kill
 $pinIv = base64_encode(random_bytes(12));
 $pinCt = base64_encode(random_bytes(64));
 $pinMsg = $vault->store(3600, true, 0, $pinIv, $pinCt);

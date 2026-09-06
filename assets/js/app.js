@@ -1403,21 +1403,7 @@
     const res = await api('fetch', { id: token });
 
     if (!res || !res.ok) {
-      // Check if this vault token is currently in an active unexpired reading session
-      try {
-        const activeRaw = sessionStorage.getItem('blackend_active_read');
-        if (activeRaw) {
-          const s = JSON.parse(activeRaw);
-          const remMs = (s.exp || 0) - Date.now();
-          if (s.token === token && remMs > 800 && s.obj) {
-            rxContext = { type: 'vault', token, frag, obj: s.obj };
-            await renderDecryptedMessage(s.obj, null, Math.ceil(remMs / 1000));
-            return;
-          }
-        }
-      } catch (_) {}
-
-      const why = (res && res.why === 'expired') ? 'expired' : 'archive';
+      const why = (res && res.why === 'expired') ? 'expired' : ((res && res.why === 'read') ? 'opened' : 'archive');
       markChat(currentChatId, 'ash', (res && res.why === 'read') ? 'opened' : ((res && res.why) || 'ended'));
       buildEnd(why);
       state = 'done';
@@ -1648,21 +1634,20 @@
     attSave.hidden = true;
 
     const baseReadTime = Math.max(1, parseFloat(SET.readTime) || 4);
-    const cdSecs = customCdSecs || (obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime);
+    let cdSecs = customCdSecs || (obj.f ? Math.max(baseReadTime, baseReadTime + 8) : baseReadTime);
+
+    // Calculate remaining seconds if message was already opened on server (e.g. reload during reading window)
+    if (!customCdSecs && rxContext && rxContext.envelope && rxContext.envelope.read) {
+      const elapsedSec = Math.floor(Date.now() / 1000) - rxContext.envelope.read;
+      if (elapsedSec > 0) {
+        cdSecs = Math.max(1, cdSecs - elapsedSec);
+      }
+    }
+
     cdNum.textContent = cdSecs + 's';
     ringFg.classList.remove('run');
     ringFg.style.animationDuration = cdSecs + 's';
     ringFg.style.animationPlayState = 'running';
-
-    // Store active read session in sessionStorage so page reload / tab switch restores it smoothly
-    const activeRead = {
-      token: (rxContext && rxContext.token) || null,
-      parts: (rxContext && rxContext.type === 'direct') ? rxContext.parts : null,
-      obj,
-      exp: Date.now() + cdSecs * 1000,
-      totalSecs: cdSecs
-    };
-    try { sessionStorage.setItem('blackend_active_read', JSON.stringify(activeRead)); } catch (_) {}
 
     if (obj.f) {
       attCardIc.innerHTML = attIcon(obj.f.t);
@@ -1699,11 +1684,6 @@
     await go('message');
     await wait(REDUCED ? 250 : 550);
 
-    if (REDUCED) {
-      finishViewing();
-      return;
-    }
-
     ringFg.classList.add('run');
 
     let cdRemaining = cdSecs * 1000;
@@ -1715,7 +1695,6 @@
     function cdFire() {
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
       if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
-      try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
       finishViewing();
     }
 
@@ -1736,14 +1715,6 @@
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
       if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
       ringFg.style.animationPlayState = 'paused';
-      try {
-        const raw = sessionStorage.getItem('blackend_active_read');
-        if (raw) {
-          const s = JSON.parse(raw);
-          s.exp = Date.now() + cdRemaining;
-          sessionStorage.setItem('blackend_active_read', JSON.stringify(s));
-        }
-      } catch (_) {}
     }
 
     function cdResume() {
@@ -1798,7 +1769,6 @@
 
   async function finishViewing() {
     if (state !== 'viewing') return;
-    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
     // Clean up the pauseable countdown timers and visibilitychange listener
     if (typeof window.__cdCleanup === 'function') { window.__cdCleanup(); window.__cdCleanup = null; }
     state = 'burning';
@@ -1894,7 +1864,6 @@
     stopFuse();
     stopPoll();
     closePop();
-    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
     // Cancel any in-progress read countdown
     if (typeof window.__cdCleanup === 'function') { window.__cdCleanup(); window.__cdCleanup = null; }
     pin = null;
@@ -2055,7 +2024,6 @@
     await Promise.allSettled(vaultIds.map(id => api('burn', { id, why: 'wiped' })));
 
     try { localStorage.removeItem(LSKEY); } catch (_) {}
-    try { sessionStorage.removeItem('blackend_active_read'); } catch (_) {}
     chats = [];
     currentChatId = null;
     linkUrl = '';
@@ -2229,33 +2197,11 @@
 
   /* ================= Receive On URL Load / Hash Change ================= */
   function tryReceive() {
-    // Check if there is an active unexpired reading session in this browser tab
-    try {
-      const activeRaw = sessionStorage.getItem('blackend_active_read');
-      if (activeRaw) {
-        const s = JSON.parse(activeRaw);
-        const remMs = (s.exp || 0) - Date.now();
-        if (remMs > 800 && s.obj) {
-          rxContext = {
-            type: s.token ? 'vault' : 'direct',
-            token: s.token,
-            parts: s.parts,
-            obj: s.obj
-          };
-          renderDecryptedMessage(s.obj, null, Math.ceil(remMs / 1000));
-          return;
-        } else {
-          sessionStorage.removeItem('blackend_active_read');
-        }
-      }
-    } catch (_) {}
-
     const parsed = BlackendCrypto.parseLink(location.pathname, location.search, location.hash);
     if (!parsed) return;
     if (state !== 'compose' && state !== 'done') return;
 
     fromSender = false;
-    clearURL(); // Strip token and key from address bar immediately
 
     if (parsed.mode === 'vault') {
       runReceiveVault(parsed.token, parsed.frag);

@@ -1,0 +1,26 @@
+# Apache / XAMPP configuration for blackend
+
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "no-referrer"
+    Header set Cache-Control "no-store, no-cache, must-revalidate"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Block direct access to internal directories and sensitive files
+    RewriteRule ^(lib|data|config\.php|\.git) - [F,L]
+
+    # Allow access to existing files and directories
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route clean URLs (/v/:token, /m/:token) and all other paths to index.php
+    RewriteRule ^ index.php [L]
+</IfModule>

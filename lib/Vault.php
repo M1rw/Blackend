@@ -272,7 +272,7 @@ final class Vault
             if (!is_dir($dir . '/chunks')) @mkdir($dir . '/chunks', 0770, true);
             $this->write(
                 $dir . '/chunks/' . str_pad((string)$i, 4, '0', STR_PAD_LEFT) . '.bin',
-                $this->sealBlob($raw)
+                $this->sealBlob($dataB64)
             );
             return ['ok' => true];
         } finally {
@@ -295,7 +295,7 @@ final class Vault
         }
     }
 
-    /** ONE read: envelope is shredded the moment it leaves the vault */
+    /** Envelope fetch: Accessible during active claim window; destroyed upon burn or claim expiry */
     public function fetch(string $id): array
     {
         $dir = $this->dirOf($id);
@@ -304,6 +304,12 @@ final class Vault
         }
         $fp = $this->lock($dir);
         try {
+            $tomb = $dir . '/tombstone.json';
+            if (is_file($tomb)) {
+                $t = json_decode((string)@file_get_contents($tomb), true) ?: [];
+                return ['ok' => false, 'why' => (string)($t['why'] ?? 'read')];
+            }
+
             $m = $this->meta($dir);
             if (!$m) return ['ok' => false, 'why' => 'unknown'];
             if (time() > (int)$m['exp']) {
@@ -314,7 +320,8 @@ final class Vault
                 $this->destroy($dir, 'unknown');
                 return ['ok' => false, 'why' => 'unknown'];
             }
-            if (!empty($m['read'])) {
+            if (!empty($m['read']) && time() > (int)($m['claim'] ?? 0)) {
+                $this->destroy($dir, 'read');
                 return ['ok' => false, 'why' => 'read'];
             }
 
@@ -324,10 +331,11 @@ final class Vault
             }
 
             $env = json_decode($this->openBlob((string)file_get_contents($envP)), true);
-            $this->shred($envP); // The single read happened: shred ciphertext
-            $m['read']  = time();
-            $m['claim'] = time() + (int)$this->cfg['claim_window'];
-            $this->putMeta($dir, $m);
+            if (empty($m['read'])) {
+                $m['read']  = time();
+                $m['claim'] = time() + (int)$this->cfg['claim_window'];
+                $this->putMeta($dir, $m);
+            }
 
             return [
                 'ok'      => true,
@@ -337,7 +345,9 @@ final class Vault
                 'wiv'     => (string)($env['wiv'] ?? ''),
                 'wrapped' => (string)($env['wrapped'] ?? ''),
                 'pin'     => !empty($m['pin']),
-                'nc'      => (int)$m['nc']
+                'nc'      => (int)$m['nc'],
+                'read'    => (int)$m['read'],
+                'claim'   => (int)$m['claim']
             ];
         } finally {
             $this->unlock($fp);
@@ -353,7 +363,9 @@ final class Vault
         if ($i < 0 || $i >= (int)$m['nc']) throw new RuntimeException('index');
         $p = $dir . '/chunks/' . str_pad((string)$i, 4, '0', STR_PAD_LEFT) . '.bin';
         if (!is_file($p)) throw new RuntimeException('missing');
-        return ['ok' => true, 'data' => self::b64e($this->openBlob((string)file_get_contents($p)))];
+        $data = $this->openBlob((string)file_get_contents($p));
+        $this->shred($p); // Shred chunk on delivery
+        return ['ok' => true, 'data' => $data];
     }
 
     public function burn(string $id, string $why): array
@@ -378,14 +390,13 @@ final class Vault
         try {
             $m = $this->meta($dir);
             if (!$m) return ['ok' => true, 'state' => 'gone'];
-            if (!empty($m['read'])) return ['ok' => true, 'state' => 'gone'];
             $m['tries'] = ((int)($m['tries'] ?? 0)) + 1;
             if ($m['tries'] >= 3) {
                 $this->destroy($dir, 'killed');
-                return ['ok' => true, 'state' => 'killed'];
+                return ['ok' => true, 'state' => 'killed', 'left' => 0];
             }
             $this->putMeta($dir, $m);
-            return ['ok' => true, 'state' => 'locked', 'left' => 3 - $m['tries']];
+            return ['ok' => true, 'state' => 'locked', 'left' => max(0, 3 - (int)$m['tries'])];
         } finally {
             $this->unlock($fp);
         }
@@ -397,13 +408,19 @@ final class Vault
         $tomb = $dir . '/tombstone.json';
         if (is_file($tomb)) {
             $t = json_decode((string)@file_get_contents($tomb), true) ?: [];
-            return ['state' => 'gone', 'why' => (string)($t['why'] ?? 'unknown')];
+            return ['ok' => true, 'state' => 'gone', 'why' => (string)($t['why'] ?? 'read')];
         }
         $m = $this->meta($dir);
-        if (!$m || ($m['state'] ?? '') !== 'complete') return ['state' => 'gone', 'why' => 'unknown'];
-        if (!empty($m['read'])) return ['state' => 'gone', 'why' => 'read'];
-        if (time() > (int)$m['exp']) return ['state' => 'gone', 'why' => 'expired'];
-        return ['state' => 'sealed'];
+        if (!$m || ($m['state'] ?? '') !== 'complete') return ['ok' => true, 'state' => 'gone', 'why' => 'unknown'];
+        if (time() > (int)$m['exp']) return ['ok' => true, 'state' => 'gone', 'why' => 'expired'];
+        if (!empty($m['read'])) {
+            if (time() > (int)($m['claim'] ?? 0)) {
+                $this->destroy($dir, 'read');
+                return ['ok' => true, 'state' => 'gone', 'why' => 'read'];
+            }
+            return ['ok' => true, 'state' => 'opened', 'read' => (int)$m['read']];
+        }
+        return ['ok' => true, 'state' => 'sealed'];
     }
 
     /** Robust garbage collection: safely purges expired tombstones and stale envelopes */
