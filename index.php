@@ -26,10 +26,12 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
 <body>
 
 <canvas id="net" aria-hidden="true"></canvas>
-<div id="scrim" aria-hidden="true"></div>
 <div id="wipeFlash" aria-hidden="true"></div>
 
 <div class="app">
+
+  <!-- scrim: inside .app so z-index competes with .side in same stacking context -->
+  <div id="scrim" aria-hidden="true"></div>
 
   <!-- ============ sidebar ============ -->
   <aside class="side" id="side" aria-label="message archive">
