@@ -181,11 +181,17 @@ final class Vault
      *  so the sender can still verify the chain-of-custody after burn. */
     private function destroy(string $dir, string $why): void
     {
-        // Snapshot receipt fields from meta BEFORE shredding it
+        $tombP = $dir . '/tombstone.json';
+        $existingTomb = is_file($tombP)
+            ? (json_decode((string)@file_get_contents($tombP), true) ?: [])
+            : [];
+
+        // Snapshot receipt fields from meta BEFORE shredding it, or preserve from existing tombstone
         $m        = $this->meta($dir);
-        $rkHash   = $m ? ($m['rk_hash']  ?? null) : null;
-        $created  = $m ? (int)($m['created'] ?? 0) : 0;
-        $openedAt = $m ? (int)($m['read']    ?? 0) : 0;
+        $rkHash   = ($m ? ($m['rk_hash'] ?? null) : null) ?: ($existingTomb['rk_hash'] ?? null);
+        $created  = ($m ? (int)($m['created'] ?? 0) : 0) ?: (int)($existingTomb['created'] ?? 0);
+        $openedAt = ($m ? (int)($m['read']    ?? 0) : 0) ?: (int)($existingTomb['opened']  ?? 0);
+        $existingWhy = (string)($existingTomb['why'] ?? '');
 
         $files = array_diff(scandir($dir) ?: [], ['.', '..']);
         foreach ($files as $f) {
@@ -199,15 +205,15 @@ final class Vault
         }
 
         $tombstone = [
-            'why'     => $this->whyOk($why),
-            't'       => time(),
+            'why'     => $this->whyOk($existingWhy ?: $why),
+            't'       => !empty($existingTomb['t']) ? (int)$existingTomb['t'] : time(),
             'created' => $created ?: null,
             'opened'  => $openedAt ?: null,
         ];
         if ($rkHash) $tombstone['rk_hash'] = $rkHash;
 
         @file_put_contents(
-            $dir . '/tombstone.json',
+            $tombP,
             json_encode($tombstone)
         );
     }
@@ -282,9 +288,10 @@ final class Vault
         }
 
         // Validate receipt key hash: base64url SHA-256 is always 43 chars
+        $normRk = rtrim(strtr((string)$rkHash, '+/', '-_'), '=');
         $safeRkHash = '';
-        if ($rkHash && preg_match('/^[A-Za-z0-9_-]{43,44}$/', $rkHash))
-            $safeRkHash = $rkHash;
+        if ($normRk && preg_match('/^[A-Za-z0-9_-]{43,44}$/', $normRk))
+            $safeRkHash = $normRk;
 
         $life = $exp > 0 ? min($exp, (int)$this->cfg['max_life']) : (int)$this->cfg['max_life'];
         $this->putMeta($dir, [
@@ -424,6 +431,9 @@ final class Vault
         if (!is_dir($dir)) return ['ok' => true];
         $fp = $this->lock($dir);
         try {
+            if (is_file($dir . '/tombstone.json')) {
+                return ['ok' => true];
+            }
             $this->destroy($dir, $why);
             return ['ok' => true];
         } finally {
@@ -625,14 +635,19 @@ final class Vault
     public function receipt(string $id, string $rkHash): array
     {
         // Basic hash format guard (base64url SHA-256 = 43 chars)
-        if (!preg_match('/^[A-Za-z0-9_-]{43,44}$/', $rkHash)) {
+        $normRk = rtrim(strtr((string)$rkHash, '+/', '-_'), '=');
+        if (!preg_match('/^[A-Za-z0-9_-]{43,44}$/', $normRk)) {
             return ['ok' => false, 'error' => 'invalid_key'];
         }
 
         try {
-            $dir   = $this->dirOf($id);
+            $dir = $this->dirOf($id);
         } catch (Throwable $e) {
-            return ['ok' => false, 'error' => 'invalid_key'];
+            return ['ok' => false, 'error' => 'not_found'];
+        }
+
+        if (!is_dir($dir)) {
+            return ['ok' => false, 'error' => 'purged'];
         }
 
         $metaP = $dir . '/meta.json';
@@ -646,8 +661,12 @@ final class Vault
         // Receipt key hash may live in live meta OR tombstone (preserved on destroy)
         $storedHash = ($m['rk_hash'] ?? null) ?: ($tomb['rk_hash'] ?? null);
 
-        if (!$storedHash || !hash_equals((string)$storedHash, $rkHash)) {
-            return ['ok' => false, 'error' => 'invalid_key'];
+        if (!$storedHash) {
+            return ['ok' => false, 'error' => 'no_receipt'];
+        }
+
+        if (!hash_equals((string)$storedHash, $normRk)) {
+            return ['ok' => false, 'error' => 'key_mismatch'];
         }
 
         $created  = (int)(($m['created'] ?? null) ?? ($tomb['created'] ?? 0));

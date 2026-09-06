@@ -1266,7 +1266,12 @@
           <div class="sv" id="rcptTrail">
             <div class="svrow"><span>chain</span><b>click verify to query the vault</b></div>
           </div>
-          <button class="btn" data-act="rcpt-verify" style="margin-top:10px;font-size:0.82rem;padding:6px 14px">verify chain</button>
+          <div class="rcpt-actions">
+            <button class="rcpt-verify-btn" data-act="rcpt-verify" type="button">
+              <span class="rcpt-btn-ic">${IC.shield}</span>
+              <span class="rcpt-btn-txt">verify chain</span>
+            </button>
+          </div>
         </div>
       </div>` : ''}
       <div class="svwrap">
@@ -1458,14 +1463,29 @@
     const trail = panes.card.querySelector('#rcptTrail');
     const btn   = panes.card.querySelector('[data-act="rcpt-verify"]');
     if (!trail || !curToken) return;
-    if (btn) { btn.disabled = true; btn.textContent = 'verifying…'; }
+    const txt = btn ? btn.querySelector('.rcpt-btn-txt') || btn : null;
+    const ic  = btn ? btn.querySelector('.rcpt-btn-ic') : null;
+    if (btn) btn.disabled = true;
+    if (txt) txt.textContent = 'verifying…';
     const r = await VaultBackend.verifyReceipt(curToken);
-    if (btn) { btn.disabled = false; btn.textContent = 'verify chain'; }
+    if (btn) btn.disabled = false;
+    if (txt) txt.textContent = 'verify chain';
     if (!r || !r.ok) {
-      const msg = r && r.error === 'invalid_key' ? 'receipt key mismatch' : (r && r.error) || 'verification failed';
-      trail.innerHTML = `<div class="svrow"><span>error</span><b>${escapeHTML(msg)}</b></div>`;
+      const errMap = {
+        key_mismatch: 'receipt key mismatch',
+        no_receipt: 'no receipt registered for this link',
+        purged: 'audit trail expired & purged from vault',
+        not_found: 'vault envelope not found',
+        no_key: 'receipt key not found on this device',
+        invalid_key: 'malformed receipt key'
+      };
+      const msg = (r && errMap[r.error]) || (r && r.error) || 'verification failed';
+      trail.innerHTML = `<div class="svrow"><span>error</span><b style="color:var(--hot, #ff5c72)">${escapeHTML(msg)}</b></div>`;
       return;
     }
+    if (btn) btn.classList.add('verified');
+    if (ic)  ic.innerHTML = IC.check;
+    if (txt) txt.textContent = 'chain verified';
     const fmtTS = ts => ts ? new Date(ts * 1000).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : '—';
     const burnLabel = r.burned
       ? (r.why === 'read'    ? 'burned after read'
@@ -1477,7 +1497,7 @@
     trail.innerHTML = `
       <div class="svrow"><span>created</span><b>${fmtTS(r.created)}</b></div>
       <div class="svrow"><span>opened</span><b>${r.opened ? fmtTS(r.opened) : 'not yet'}</b></div>
-      <div class="svrow"><span>burned</span><b>${fmtTS(r.burned)}</b></div>
+      <div class="svrow"><span>burned</span><b>${r.burned ? fmtTS(r.burned) : 'pending'}</b></div>
       <div class="svrow"><span>reason</span><b>${escapeHTML(burnLabel)}</b></div>`;
     toast('chain verified — cryptographic receipt confirmed.');
   }
