@@ -1,36 +1,57 @@
 {
-  "version": 2,
   "functions": {
     "api/*.php": {
       "runtime": "vercel-php@0.9.0"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
+      "source": "/vault.php",
+      "destination": "/api/vault.php"
     },
     {
-      "src": "/(?:m|v)?/?assets/(.*)",
-      "dest": "/assets/$1"
+      "source": "/api/vault.php",
+      "destination": "/api/vault.php"
     },
     {
-      "src": "/(?:m|v)?/?vault\\.php",
-      "dest": "/api/vault.php"
+      "source": "/(?:m|v)?/?vault\\.php",
+      "destination": "/api/vault.php"
     },
     {
-      "src": "/api/vault.php",
-      "dest": "/api/vault.php"
+      "source": "/index.php",
+      "destination": "/index.html"
     },
     {
-      "src": "/(?:m|v)/(.*)",
-      "dest": "/api/index.php"
+      "source": "/m/:token*",
+      "destination": "/index.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/api/index.php"
+      "source": "/v/:token*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!assets/|api/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+        }
+      ]
+    },
     {
       "source": "/assets/css/(.*)",
       "headers": [
