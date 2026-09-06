@@ -274,12 +274,17 @@
   }
 
   function updateScrim() {
-    $('#scrim').classList.toggle('on', !!popOpen || (MOBILE() && sideOpen));
+    // Scrim is strictly for the mobile drawer; popovers have their own outside-click handler
+    $('#scrim').classList.toggle('on', MOBILE() && sideOpen);
   }
 
   $('#sideToggle').addEventListener('click', () => setSide(!sideOpen));
   $('#sideX').addEventListener('click', () => setSide(false));
-  $('#scrim').addEventListener('pointerdown', () => { closePop(); setSide(false); });
+  $('#scrim').addEventListener('pointerdown', () => {
+    if (MOBILE() && sideOpen) {
+      setSide(false);
+    }
+  });
 
   /* ================= Toasts ================= */
   function toast(msg) {
@@ -433,8 +438,12 @@
     const h1 = next.offsetHeight;
     void stage.offsetWidth;
     stage.style.height = h1 + 'px';
-    next.classList.remove('pre');
-    await wait(420);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        next.classList.remove('pre');
+      });
+    });
+    await wait(360);
     cur.hidden = true;
     cur.classList.remove('out');
     stage.style.height = '';
@@ -448,19 +457,30 @@
   function runWave(spans) {
     return new Promise(res => {
       if (REDUCED || !spans.length) { res(); return; }
-      const dur = SET.burn === 'quick' ? 750 : 1600;
-      const per = clampN(dur / spans.length, 3, 26);
-      let i = 0;
-      const iv = setInterval(() => {
-        if (i >= spans.length) {
-          clearInterval(iv);
-          setTimeout(res, 430);
-          return;
+      const dur = SET.burn === 'quick' ? 650 : 1350;
+      const t0 = performance.now();
+      const n = spans.length;
+      let lastIndex = 0;
+
+      function step(now) {
+        const elapsed = now - t0;
+        const progress = Math.min(elapsed / dur, 1);
+        const targetIndex = Math.min(Math.floor(progress * n), n);
+
+        while (lastIndex < targetIndex) {
+          const s = spans[lastIndex++];
+          s.classList.add('hot');
+          setTimeout(() => s.classList.add('ash'), 160);
         }
-        const s = spans[i++];
-        s.classList.add('hot');
-        setTimeout(() => s.classList.add('ash'), 180);
-      }, per);
+
+        if (progress < 1 || lastIndex < n) {
+          requestAnimationFrame(step);
+        } else {
+          setTimeout(res, 360);
+        }
+      }
+
+      requestAnimationFrame(step);
     });
   }
 
@@ -674,7 +694,6 @@
       pop.style.bottom = '';
     }
     popOpen = name;
-    updateScrim();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => pop.classList.add('in'));
     });
@@ -689,7 +708,6 @@
     const fin = () => { pop.hidden = true; pop.classList.remove('in'); };
     instant ? fin() : setTimeout(fin, 180);
     popOpen = null;
-    updateScrim();
   }
 
   btnPin.addEventListener('click', () => popOpen === 'pin' ? closePop() : openPop('pin', btnPin));
@@ -709,7 +727,7 @@
     if (e.key === 'Escape') {
       closePop();
       closeSettings();
-      setSide(false);
+      if (MOBILE()) setSide(false);
     }
   });
 
@@ -1880,10 +1898,10 @@
         en.target.classList.add('in');
         io.unobserve(en.target);
       }
-    }), { threshold: 0.15 });
-    $$('.rv').forEach(el => io.observe(el));
+    }), { threshold: 0.05, rootMargin: '0px 0px -30px 0px' });
+    $$('.rv, .rv-stagger').forEach(el => io.observe(el));
   } else {
-    $$('.rv').forEach(el => el.classList.add('in'));
+    $$('.rv, .rv-stagger').forEach(el => el.classList.add('in'));
   }
 
   window.addEventListener('resize', () => {

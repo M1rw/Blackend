@@ -25,6 +25,11 @@ const BlackendCanvas = (() => {
       my = e.clientY;
     }, { passive: true });
 
+    window.addEventListener('pointerleave', () => {
+      mx = -1e4;
+      my = -1e4;
+    }, { passive: true });
+
     window.addEventListener('resize', () => {
       buildNet();
     }, { passive: true });
@@ -97,16 +102,25 @@ const BlackendCanvas = (() => {
       if (!config.net) return;
 
       ctx.drawImage(baseCanvas, 0, 0, W, H);
-      smx += (mx - smx) * 0.07;
-      smy += (my - smy) * 0.07;
+      smx += (mx - smx) * 0.08;
+      smy += (my - smy) * 0.08;
 
-      if (mx > -999) {
-        for (const d of dots) {
+      if (mx > -999 && smx > -100 && smx < W + 100 && smy > -100 && smy < H + 100) {
+        const radius = 130;
+        const r2 = radius * radius;
+        const minX = smx - radius;
+        const maxX = smx + radius;
+        const minY = smy - radius;
+        const maxY = smy + radius;
+
+        for (let i = 0; i < dots.length; i++) {
+          const d = dots[i];
+          if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) continue;
           const dx = d.x - smx;
           const dy = d.y - smy;
           const d2 = dx * dx + dy * dy;
-          if (d2 < 130 * 130) {
-            const p = 1 - Math.sqrt(d2) / 130;
+          if (d2 < r2) {
+            const p = 1 - Math.sqrt(d2) / radius;
             const r = 237 + (255 - 237) * p | 0;
             const g = 235 + (180 - 235) * p | 0;
             const bl = 229 + (84 - 229) * p | 0;

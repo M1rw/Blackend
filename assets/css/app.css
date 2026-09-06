@@ -92,6 +92,7 @@ body.net-off #net {
   opacity: 0;
 }
 
+/* Scrim: only active for mobile sidebar drawer, hidden on desktop */
 #scrim {
   position: fixed;
   inset: 0;
@@ -99,7 +100,13 @@ body.net-off #net {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.28s;
-  z-index: 43; /* just below popovers (z-index 48), above regular content */
+  z-index: 43;
+}
+
+@media (min-width: 901px) {
+  #scrim {
+    display: none !important;
+  }
 }
 
 #scrim.on {
@@ -722,7 +729,8 @@ main {
 }
 
 .pane {
-  transition: opacity 0.26s ease, transform 0.26s ease;
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .pane.out {
@@ -731,6 +739,8 @@ main {
   left: 0;
   width: 100%;
   opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
 }
 
 .pane.pre {
@@ -828,17 +838,20 @@ main {
 }
 
 .ch {
-  transition: color 0.16s, opacity 0.42s, filter 0.42s;
+  display: inline-block;
+  transition: color 0.16s, opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), filter 0.38s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, filter, transform;
 }
 
 .ch.hot {
   color: var(--ember);
-  text-shadow: 0 0 8px rgba(var(--ember-rgb), 0.45);
+  text-shadow: 0 0 8px rgba(var(--ember-rgb), 0.5);
 }
 
 .ch.ash {
   opacity: 0;
-  filter: blur(4px);
+  filter: blur(3px);
+  transform: translateY(-2px) scale(0.96);
 }
 
 /* Attachment strip in composer */
@@ -1358,9 +1371,11 @@ main {
   top: 13px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 120, 40, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 120, 40, 0.75), transparent);
+  box-shadow: 0 0 6px rgba(255, 120, 40, 0.4);
   opacity: 0;
-  animation: scanY 3s ease-in-out infinite;
+  animation: scanY 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: top, opacity;
 }
 
 @keyframes scanY {
@@ -1985,12 +2000,14 @@ main {
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 22px;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.24s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .fcard:hover {
-  border-color: var(--line2);
-  transform: translateY(-2px);
+  border-color: rgba(var(--ember-rgb), 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(var(--ember-rgb), 0.12);
 }
 
 .fcard .ic {
@@ -2097,6 +2114,8 @@ main {
   box-shadow: 0 0 8px rgba(var(--ember-rgb), 0.8);
   transform: translateY(-50%);
   animation: pktGo 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: left, opacity;
+  backface-visibility: hidden;
 }
 
 @keyframes pktGo {
@@ -2435,7 +2454,8 @@ body.set-open #setScrim {
   display: flex;
   flex-direction: column;
   transform: translateX(103%);
-  transition: transform 0.4s cubic-bezier(0.22, 0.9, 0.3, 1);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 body.set-open .setpanel {
@@ -2715,7 +2735,8 @@ body.set-open .setpanel {
   max-width: 100%;
   opacity: 0;
   transform: translateY(-8px);
-  transition: 0.25s;
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1), transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .toast.in {
@@ -2723,16 +2744,39 @@ body.set-open .setpanel {
   transform: none;
 }
 
+/* ================= Scroll Reveals & Stagger Transitions ================= */
 .js .rv {
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+  transform: translateY(14px);
+  transition: opacity 0.52s cubic-bezier(0.16, 1, 0.3, 1), transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .rv.in {
   opacity: 1;
   transform: none;
 }
+
+/* Stagger container: reveals child cards smoothly in sequence */
+.rv-stagger > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.48s cubic-bezier(0.16, 1, 0.3, 1), transform 0.48s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.rv.in .rv-stagger > *,
+.rv-stagger.in > * {
+  opacity: 1;
+  transform: none;
+}
+
+.rv.in .rv-stagger > *:nth-child(1), .rv-stagger.in > *:nth-child(1) { transition-delay: 0.04s; }
+.rv.in .rv-stagger > *:nth-child(2), .rv-stagger.in > *:nth-child(2) { transition-delay: 0.11s; }
+.rv.in .rv-stagger > *:nth-child(3), .rv-stagger.in > *:nth-child(3) { transition-delay: 0.18s; }
+.rv.in .rv-stagger > *:nth-child(4), .rv-stagger.in > *:nth-child(4) { transition-delay: 0.25s; }
+.rv.in .rv-stagger > *:nth-child(5), .rv-stagger.in > *:nth-child(5) { transition-delay: 0.32s; }
+.rv.in .rv-stagger > *:nth-child(6), .rv-stagger.in > *:nth-child(6) { transition-delay: 0.39s; }
 
 /* ================= Responsive Layouts ================= */
 @media (max-width: 900px) {

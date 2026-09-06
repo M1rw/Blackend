@@ -210,7 +210,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
       <!-- ============ how it ends ============ -->
       <section class="sec rv" id="how">
         <div class="sec-h">how it ends</div>
-        <div class="cards">
+        <div class="cards rv-stagger">
           <div class="fcard">
             <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 4.5c.5 3-3.8 5-3.8 9a3.8 3.8 0 0 0 7.6 0c0-1.9-1-3-1.7-4.4-.4 1-1.1 1.6-1.9 1.9.4-2.2.3-4.3-.2-6.5Z"/></svg></div>
             <h3>One read, then ash</h3>
@@ -258,7 +258,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
           </div>
         </div>
 
-        <div class="proof-grid">
+        <div class="proof-grid rv-stagger">
           <div class="anatomy">
             <p class="a-head">anatomy of a link</p>
             <p class="a-sub">sealed live in this tab — hover the parts</p>
