@@ -100,7 +100,7 @@ body.net-off #net {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.28s;
-  z-index: 43;
+  z-index: 40;
 }
 
 @media (min-width: 901px) {
@@ -151,7 +151,7 @@ body.net-off #net {
   background: rgba(10, 11, 14, 0.85);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  z-index: 46;
+  z-index: 50;
   transition: transform 0.4s cubic-bezier(0.22, 0.9, 0.3, 1);
 }
 
@@ -1099,7 +1099,7 @@ main {
   background: var(--sur2);
   border: 1px solid var(--line2);
   border-radius: 16px;
-  /* Must be above #scrim (z-index 43) so PIN inputs are reachable */
+  /* Must be above #scrim (z-index 40) so PIN inputs are reachable */
   z-index: 48;
   box-shadow: 0 22px 55px -18px rgba(0, 0, 0, 0.75);
   opacity: 0;
@@ -2951,8 +2951,8 @@ body.set-open .setpanel {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform-origin: bottom center;
-    /* Ensure above scrim */
-    z-index: 48 !important;
+    /* Ensure above sidebar (z-index 50) and scrim (z-index 40) */
+    z-index: 55 !important;
   }
   /* Anchor pop to bottom of viewport with safe area */
   .pop.in {
