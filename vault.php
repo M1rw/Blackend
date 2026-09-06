@@ -72,6 +72,7 @@ try {
                 $rawSettings,
                 (string)($in['rk'] ?? '')  // receipt key hash (SHA-256 of sender's rk)
             ));
+            break;
 
         case 'put':
             out($vault->put(
@@ -79,33 +80,42 @@ try {
                 (int)($in['i'] ?? -1),
                 (string)($in['data'] ?? '')
             ));
+            break;
 
         case 'ready':
             out($vault->ready((string)($in['id'] ?? '')));
+            break;
 
         case 'fetch':
             out($vault->fetch((string)($in['id'] ?? '')));
+            break;
 
         case 'chunk':
             out($vault->chunk((string)($in['id'] ?? ''), (int)($in['i'] ?? -1)));
+            break;
 
         case 'burn':
             out($vault->burn(
                 (string)($in['id'] ?? ''),
                 (string)($in['why'] ?? 'killed')
             ));
+            break;
 
         case 'open':
             out($vault->open((string)($in['id'] ?? '')));
+            break;
 
         case 'fail':
             out($vault->fail((string)($in['id'] ?? '')));
+            break;
 
         case 'status':
             out($vault->status((string)($in['id'] ?? '')));
+            break;
 
         case 'ping':
             out(['ok' => true, 'service' => 'blackend-vault', 'version' => '2.0.0']);
+            break;
 
         case 'watch':
             // SSE streaming watcher — token stays in POST body, never in GET URL / access logs.
@@ -118,8 +128,10 @@ try {
             header('Cache-Control: no-cache, no-store, must-revalidate');
             header('X-Accel-Buffering: no');   // disable nginx proxy buffering
             header('X-Content-Type-Options: nosniff');
-            if (ob_get_level()) { ob_end_clean(); }
-            flush();
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+            @flush();
             $vault->watch($watchId);
             exit;
 
@@ -129,6 +141,7 @@ try {
                 (string)($in['id'] ?? ''),
                 (string)($in['rk'] ?? '')
             ));
+            break;
 
         default:
             out(['ok' => false, 'error' => 'unknown action'], 400);

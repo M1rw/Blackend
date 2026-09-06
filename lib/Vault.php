@@ -110,7 +110,12 @@ final class Vault
         if ($fp) {
             if ($n > 0) {
                 @fseek($fp, 0);
-                @fwrite($fp, random_bytes(min($n, 1048576)));
+                $rem = $n;
+                while ($rem > 0) {
+                    $writeLen = min($rem, 1048576);
+                    @fwrite($fp, random_bytes($writeLen));
+                    $rem -= $writeLen;
+                }
                 @fflush($fp);
             }
             @fclose($fp);
@@ -414,15 +419,21 @@ final class Vault
     public function chunk(string $id, int $i): array
     {
         $dir = $this->dirOf($id);
-        $m = $this->meta($dir);
-        if (!$m || empty($m['read'])) throw new RuntimeException('not claimed');
-        if (time() > (int)($m['claim'] ?? 0)) throw new RuntimeException('claim expired');
-        if ($i < 0 || $i >= (int)$m['nc']) throw new RuntimeException('index');
-        $p = $dir . '/chunks/' . str_pad((string)$i, 4, '0', STR_PAD_LEFT) . '.bin';
-        if (!is_file($p)) throw new RuntimeException('missing');
-        $data = $this->openBlob((string)file_get_contents($p));
-        $this->shred($p); // Shred chunk on delivery
-        return ['ok' => true, 'data' => $data];
+        if (!is_dir($dir)) throw new RuntimeException('missing');
+        $fp = $this->lock($dir);
+        try {
+            $m = $this->meta($dir);
+            if (!$m || empty($m['read'])) throw new RuntimeException('not claimed');
+            if (time() > (int)($m['claim'] ?? 0)) throw new RuntimeException('claim expired');
+            if ($i < 0 || $i >= (int)$m['nc']) throw new RuntimeException('index');
+            $p = $dir . '/chunks/' . str_pad((string)$i, 4, '0', STR_PAD_LEFT) . '.bin';
+            if (!is_file($p)) throw new RuntimeException('missing');
+            $data = $this->openBlob((string)file_get_contents($p));
+            $this->shred($p); // Shred chunk on delivery
+            return ['ok' => true, 'data' => $data];
+        } finally {
+            $this->unlock($fp);
+        }
     }
 
     public function burn(string $id, string $why): array
@@ -508,10 +519,15 @@ final class Vault
         }
         $m = $this->meta($dir);
         if (!$m || ($m['state'] ?? '') !== 'complete') return ['ok' => true, 'state' => 'gone', 'why' => 'unknown', 'now' => time()];
-        if (time() > (int)$m['exp']) return ['ok' => true, 'state' => 'gone', 'why' => 'expired', 'now' => time()];
+        if (time() > (int)$m['exp']) {
+            $fp = $this->lock($dir);
+            try { $this->destroy($dir, 'expired'); } finally { $this->unlock($fp); }
+            return ['ok' => true, 'state' => 'gone', 'why' => 'expired', 'now' => time()];
+        }
         if (!empty($m['read'])) {
             if (time() > (int)($m['claim'] ?? 0)) {
-                $this->destroy($dir, 'read');
+                $fp = $this->lock($dir);
+                try { $this->destroy($dir, 'read'); } finally { $this->unlock($fp); }
                 return ['ok' => true, 'state' => 'gone', 'why' => 'read', 'now' => time()];
             }
             return ['ok' => true, 'state' => 'opened', 'read' => (int)$m['read'], 'now' => time()];
@@ -587,7 +603,9 @@ final class Vault
      */
     public function watch(string $id): void
     {
-        $deadline  = time() + 55;
+        $isServerless = (bool)(getenv('VERCEL') || getenv('VERCEL_ENV') || getenv('AWS_LAMBDA_FUNCTION_NAME'));
+        $maxSec = $isServerless ? 8 : 25;
+        $deadline  = time() + $maxSec;
         $lastState = null;
         $hb        = 0;
 
@@ -599,27 +617,27 @@ final class Vault
                 if ($state !== $lastState) {
                     $lastState = $state;
                     echo 'data: ' . json_encode($r, JSON_UNESCAPED_SLASHES) . "\n\n";
-                    flush();
+                    @flush();
                     if ($state === 'gone') break;
                 }
             } catch (Throwable $e) {
                 echo 'data: ' . json_encode(['ok' => false, 'state' => 'gone', 'why' => 'error', 'now' => time()]) . "\n\n";
-                flush();
+                @flush();
                 break;
             }
 
-            // Heartbeat every 10 s keeps proxies from closing the connection
+            // Heartbeat every 5 s keeps proxies from closing the connection
             if (++$hb % 10 === 0) {
                 echo ": heartbeat\n\n";
-                flush();
+                @flush();
             }
 
-            sleep(1);
+            usleep(500000); // 0.5 sec sleep for responsive updates
         }
 
         if ($lastState !== 'gone') {
             echo 'data: ' . json_encode(['ok' => true, 'state' => 'timeout', 'now' => time()]) . "\n\n";
-            flush();
+            @flush();
         }
     }
 

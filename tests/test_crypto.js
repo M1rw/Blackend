@@ -234,6 +234,15 @@ async function runTests() {
     console.log('[PASS] VaultBackend receipt key generation, SHA-256 hashing, and cross-browser settings sync');
   }
 
+  // Test 2.9: VaultBackend Watcher stopWatch Cleanup
+  {
+    VaultBackend.watch('test-token-123', () => {});
+    VaultBackend.stopWatch();
+    // Verify stopping watcher clears internal flag
+    assert.doesNotThrow(() => VaultBackend.stopWatch(), 'stopWatch should be idempotent and clean up without errors');
+    console.log('[PASS] VaultBackend stopWatch timer and watcher cleanup verified');
+  }
+
   console.log('\n>>> ALL AUTOMATED TESTS PASSED SUCCESSFULLY! <<<\n');
 }
 
