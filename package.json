@@ -4,8 +4,8 @@
   "description": "Serverless end-to-end encrypted temporary messaging with blind escrow vault",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
+    "dev": "php -S 127.0.0.1:8090 router.php",
+    "start": "php -S 127.0.0.1:8090 router.php",
     "test": "node tests/test_crypto.js",
     "test:php": "php tests/test_vault.php",
     "test:all": "node tests/test_crypto.js && php tests/test_vault.php"
