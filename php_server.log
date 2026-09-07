@@ -1,0 +1,573 @@
+[Mon Sep  7 10:52:59 2026] PHP 8.3.6 Development Server (http://127.0.0.1:8090) started
+[Mon Sep  7 10:53:00 2026] 127.0.0.1:58886 Accepted
+[Mon Sep  7 10:53:00 2026] 127.0.0.1:58886 [200]: POST /vault.php
+[Mon Sep  7 10:53:00 2026] 127.0.0.1:58886 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51504 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51504 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51518 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51534 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51536 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51540 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51544 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51546 Accepted
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51518 [200]: GET /assets/css/app.css
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51534 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51536 [200]: GET /assets/js/backend.js
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51540 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51544 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51546 [200]: GET /assets/js/app.js
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51518 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51534 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51536 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51540 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51544 Closing
+[Mon Sep  7 10:53:37 2026] 127.0.0.1:51546 Closing
+[Mon Sep  7 10:54:37 2026] 127.0.0.1:55868 Accepted
+[Mon Sep  7 10:54:37 2026] 127.0.0.1:55868 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43900 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43900 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43914 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43924 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43936 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43952 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43962 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43978 Accepted
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43914 [200]: GET /assets/css/app.css
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43924 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43936 [200]: GET /assets/js/backend.js
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43952 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43962 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43978 [200]: GET /assets/js/app.js
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43914 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43924 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43936 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43952 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43962 Closing
+[Mon Sep  7 10:56:28 2026] 127.0.0.1:43978 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41562 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41562 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41570 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41578 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41582 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41594 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41610 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41626 Accepted
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41570 [200]: GET /assets/css/app.css
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41570 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41578 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41578 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41582 [200]: GET /assets/js/backend.js
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41582 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41594 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41594 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41610 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41610 Closing
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41626 [200]: GET /assets/js/app.js
+[Mon Sep  7 10:57:31 2026] 127.0.0.1:41626 Closing
+[Mon Sep  7 10:57:32 2026] 127.0.0.1:41632 Accepted
+[Mon Sep  7 10:57:32 2026] 127.0.0.1:41632 [200]: POST /vault.php
+[Mon Sep  7 10:57:32 2026] 127.0.0.1:41632 Closing
+[Mon Sep  7 10:57:34 2026] 127.0.0.1:41648 Accepted
+[Mon Sep  7 10:57:59 2026] 127.0.0.1:41648 [200]: POST /vault.php
+[Mon Sep  7 10:57:59 2026] 127.0.0.1:41648 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41214 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41214 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41216 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41224 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41228 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41244 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41248 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41256 Accepted
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41216 [200]: GET /assets/css/app.css
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41216 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41224 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41228 [200]: GET /assets/js/backend.js
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41244 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41248 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41224 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41228 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41244 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41248 Closing
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41256 [200]: GET /assets/js/app.js
+[Mon Sep  7 10:59:03 2026] 127.0.0.1:41256 Closing
+[Mon Sep  7 10:59:04 2026] 127.0.0.1:41268 Accepted
+[Mon Sep  7 10:59:04 2026] 127.0.0.1:41268 [200]: POST /vault.php
+[Mon Sep  7 10:59:04 2026] 127.0.0.1:41268 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57322 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57322 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57332 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57336 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57340 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57344 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57356 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57360 Accepted
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57332 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57336 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57340 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57344 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57356 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57360 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57332 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57336 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57340 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57344 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57356 Closing
+[Mon Sep  7 11:00:09 2026] 127.0.0.1:57360 Closing
+[Mon Sep  7 11:00:10 2026] 127.0.0.1:57366 Accepted
+[Mon Sep  7 11:00:10 2026] 127.0.0.1:57366 [200]: POST /vault.php
+[Mon Sep  7 11:00:10 2026] 127.0.0.1:57366 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42258 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42258 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42264 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42278 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42290 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42298 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42314 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42324 Accepted
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42264 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42264 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42278 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42278 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42290 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42298 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42314 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42324 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42290 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42298 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42314 Closing
+[Mon Sep  7 11:01:09 2026] 127.0.0.1:42324 Closing
+[Mon Sep  7 11:01:10 2026] 127.0.0.1:42340 Accepted
+[Mon Sep  7 11:01:10 2026] 127.0.0.1:42340 [200]: POST /vault.php
+[Mon Sep  7 11:01:10 2026] 127.0.0.1:42340 Closing
+[Mon Sep  7 11:01:12 2026] 127.0.0.1:49806 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49806 [200]: POST /vault.php
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49806 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49820 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49832 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49820 [200]: POST /vault.php
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49820 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:49832 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35284 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35292 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35306 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35310 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35326 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35328 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35284 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35284 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35292 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35292 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35306 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35306 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35310 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35310 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35326 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35326 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35328 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35328 Closing
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35334 Accepted
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35334 [200]: POST /vault.php
+[Mon Sep  7 11:01:37 2026] 127.0.0.1:35334 Closing
+[Mon Sep  7 11:01:38 2026] 127.0.0.1:35336 Accepted
+[Mon Sep  7 11:01:38 2026] 127.0.0.1:35336 [200]: POST /vault.php
+[Mon Sep  7 11:01:38 2026] 127.0.0.1:35336 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52832 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52832 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52844 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52860 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52874 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52878 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52894 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52910 Accepted
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52844 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52860 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52874 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52878 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52894 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52910 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52844 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52860 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52874 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52878 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52894 Closing
+[Mon Sep  7 11:03:13 2026] 127.0.0.1:52910 Closing
+[Mon Sep  7 11:03:15 2026] 127.0.0.1:52918 Accepted
+[Mon Sep  7 11:03:15 2026] 127.0.0.1:52918 [200]: POST /vault.php
+[Mon Sep  7 11:03:15 2026] 127.0.0.1:52918 Closing
+[Mon Sep  7 11:03:17 2026] 127.0.0.1:52928 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52928 [200]: POST /vault.php
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52928 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52940 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52954 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52940 [200]: POST /vault.php
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52940 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:52954 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44438 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44438 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44438 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44446 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44460 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44466 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44474 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44484 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44446 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44446 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44460 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44460 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44466 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44466 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44474 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44474 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44484 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44484 Closing
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44486 Accepted
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44486 [200]: POST /vault.php
+[Mon Sep  7 11:03:42 2026] 127.0.0.1:44486 Closing
+[Mon Sep  7 11:03:43 2026] 127.0.0.1:44496 Accepted
+[Mon Sep  7 11:03:43 2026] 127.0.0.1:44496 [200]: POST /vault.php
+[Mon Sep  7 11:03:43 2026] 127.0.0.1:44496 Closing
+[Mon Sep  7 11:03:44 2026] 127.0.0.1:44508 Accepted
+[Mon Sep  7 11:03:44 2026] 127.0.0.1:44508 [200]: POST /vault.php
+[Mon Sep  7 11:03:44 2026] 127.0.0.1:44508 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44512 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44520 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44512 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44520 [200]: POST /vault.php
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44520 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44532 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44532 [200]: POST /vault.php
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44532 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44536 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44544 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44550 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44564 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44536 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44578 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44582 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44536 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44544 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44544 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44550 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44564 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44578 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44582 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44550 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44564 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44578 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44582 Closing
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44588 Accepted
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44588 [200]: POST /vault.php
+[Mon Sep  7 11:03:45 2026] 127.0.0.1:44588 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48266 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48266 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48278 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48280 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48288 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48304 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48318 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48326 Accepted
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48278 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48278 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48280 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48280 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48288 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48288 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48304 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48304 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48318 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48318 Closing
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48326 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:04:49 2026] 127.0.0.1:48326 Closing
+[Mon Sep  7 11:04:50 2026] 127.0.0.1:48332 Accepted
+[Mon Sep  7 11:04:50 2026] 127.0.0.1:48332 [200]: POST /vault.php
+[Mon Sep  7 11:04:50 2026] 127.0.0.1:48332 Closing
+[Mon Sep  7 11:04:53 2026] 127.0.0.1:37932 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37932 [200]: POST /vault.php
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37932 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37944 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37954 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37944 [200]: POST /vault.php
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37944 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:37954 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54934 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54934 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54934 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54948 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54952 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54962 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54966 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54972 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54948 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54948 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54952 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54952 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54962 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54962 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54966 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54966 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54972 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54972 Closing
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54974 Accepted
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54974 [200]: POST /vault.php
+[Mon Sep  7 11:05:18 2026] 127.0.0.1:54974 Closing
+[Mon Sep  7 11:05:19 2026] 127.0.0.1:54990 Accepted
+[Mon Sep  7 11:05:19 2026] 127.0.0.1:54990 [200]: POST /vault.php
+[Mon Sep  7 11:05:19 2026] 127.0.0.1:54990 Closing
+[Mon Sep  7 11:05:20 2026] 127.0.0.1:55006 Accepted
+[Mon Sep  7 11:05:20 2026] 127.0.0.1:55006 [200]: POST /vault.php
+[Mon Sep  7 11:05:20 2026] 127.0.0.1:55006 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58936 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58946 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58936 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58946 [200]: POST /vault.php
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58946 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58954 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58954 [200]: POST /vault.php
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58954 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58958 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58966 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58974 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58976 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58958 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58982 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58958 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58984 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58984 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58966 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58974 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58976 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58982 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58984 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58966 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58974 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58976 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:58982 Closing
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:59000 Accepted
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:59000 [200]: POST /vault.php
+[Mon Sep  7 11:05:21 2026] 127.0.0.1:59000 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40420 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40420 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40432 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40438 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40442 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40448 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40454 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40462 Accepted
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40432 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40432 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40438 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40442 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40448 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40454 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40462 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40438 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40442 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40448 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40454 Closing
+[Mon Sep  7 11:06:25 2026] 127.0.0.1:40462 Closing
+[Mon Sep  7 11:06:27 2026] 127.0.0.1:40464 Accepted
+[Mon Sep  7 11:06:27 2026] 127.0.0.1:40464 [200]: POST /vault.php
+[Mon Sep  7 11:06:27 2026] 127.0.0.1:40464 Closing
+[Mon Sep  7 11:06:29 2026] 127.0.0.1:40476 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:40476 [200]: POST /vault.php
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:40476 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:47646 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:47648 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:47646 [200]: POST /vault.php
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:47646 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:47648 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35902 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35904 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35910 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35926 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35940 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35952 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35902 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35904 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35910 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35926 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35940 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35902 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35904 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35910 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35926 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35940 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35952 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35952 Closing
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35956 Accepted
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35956 [200]: POST /vault.php
+[Mon Sep  7 11:06:54 2026] 127.0.0.1:35956 Closing
+[Mon Sep  7 11:06:55 2026] 127.0.0.1:35962 Accepted
+[Mon Sep  7 11:06:55 2026] 127.0.0.1:35962 [200]: POST /vault.php
+[Mon Sep  7 11:06:55 2026] 127.0.0.1:35962 Closing
+[Mon Sep  7 11:06:56 2026] 127.0.0.1:35970 Accepted
+[Mon Sep  7 11:06:56 2026] 127.0.0.1:35970 [200]: POST /vault.php
+[Mon Sep  7 11:06:56 2026] 127.0.0.1:35970 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36350 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36350 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36364 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36364 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36364 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36368 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36370 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36376 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36390 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36398 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36368 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36370 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36376 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36390 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36398 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36368 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36370 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36376 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36390 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36398 Closing
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36406 Accepted
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36406 [200]: POST /vault.php
+[Mon Sep  7 11:07:02 2026] 127.0.0.1:36406 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46886 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46886 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46894 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46900 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46916 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46920 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46934 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46946 Accepted
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46894 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46894 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46900 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46916 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46920 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46934 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46946 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46900 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46916 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46920 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46934 Closing
+[Mon Sep  7 11:09:00 2026] 127.0.0.1:46946 Closing
+[Mon Sep  7 11:09:02 2026] 127.0.0.1:53412 Accepted
+[Mon Sep  7 11:09:02 2026] 127.0.0.1:53412 [200]: POST /vault.php
+[Mon Sep  7 11:09:02 2026] 127.0.0.1:53412 Closing
+[Mon Sep  7 11:09:04 2026] 127.0.0.1:53428 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53428 [200]: POST /vault.php
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53428 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53438 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53440 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53438 [200]: POST /vault.php
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53438 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:53440 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42674 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42680 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42690 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42694 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42700 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42714 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42674 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42680 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42690 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42694 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42700 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42714 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42674 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42680 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42690 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42694 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42700 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42714 Closing
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42722 Accepted
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42722 [200]: POST /vault.php
+[Mon Sep  7 11:09:29 2026] 127.0.0.1:42722 Closing
+[Mon Sep  7 11:09:30 2026] 127.0.0.1:42724 Accepted
+[Mon Sep  7 11:09:30 2026] 127.0.0.1:42724 [200]: POST /vault.php
+[Mon Sep  7 11:09:30 2026] 127.0.0.1:42724 Closing
+[Mon Sep  7 11:09:31 2026] 127.0.0.1:50972 Accepted
+[Mon Sep  7 11:09:31 2026] 127.0.0.1:50972 [200]: POST /vault.php
+[Mon Sep  7 11:09:31 2026] 127.0.0.1:50972 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:50976 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:50976 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:50986 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51002 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51012 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51020 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51034 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51050 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:50986 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:50986 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51002 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51002 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51012 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51012 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51020 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51034 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51050 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51020 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51034 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51050 Closing
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51062 Accepted
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51062 [200]: POST /vault.php
+[Mon Sep  7 11:09:37 2026] 127.0.0.1:51062 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58338 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58338 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58344 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58352 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58362 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58376 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58386 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58402 Accepted
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58344 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58344 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58352 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58362 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58376 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58386 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58402 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58352 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58362 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58376 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58386 Closing
+[Mon Sep  7 11:10:49 2026] 127.0.0.1:58402 Closing
+[Mon Sep  7 11:10:51 2026] 127.0.0.1:58410 Accepted
+[Mon Sep  7 11:10:51 2026] 127.0.0.1:58410 [200]: POST /vault.php
+[Mon Sep  7 11:10:51 2026] 127.0.0.1:58410 Closing
+[Mon Sep  7 11:10:53 2026] 127.0.0.1:39538 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39538 [200]: POST /vault.php
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39538 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39550 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39564 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39550 [200]: POST /vault.php
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39550 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:39564 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34552 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34554 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34556 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34568 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34572 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34586 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34552 [200]: GET /assets/css/app.css
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34552 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34554 [200]: GET /assets/js/crypto.js
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34554 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34556 [200]: GET /assets/js/backend.js
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34556 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34568 [200]: GET /assets/js/qrenc.js
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34568 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34572 [200]: GET /assets/js/canvas.js
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34572 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34586 [200]: GET /assets/js/app.js
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34586 Closing
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34596 Accepted
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34596 [200]: POST /vault.php
+[Mon Sep  7 11:11:18 2026] 127.0.0.1:34596 Closing
+[Mon Sep  7 11:11:19 2026] 127.0.0.1:34610 Accepted
+[Mon Sep  7 11:11:19 2026] 127.0.0.1:34610 [200]: POST /vault.php
+[Mon Sep  7 11:11:19 2026] 127.0.0.1:34610 Closing
+[Mon Sep  7 11:11:20 2026] 127.0.0.1:34612 Accepted
+[Mon Sep  7 11:11:20 2026] 127.0.0.1:34612 [200]: POST /vault.php
+[Mon Sep  7 11:11:20 2026] 127.0.0.1:34612 Closing
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56038 Accepted
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56038 [200]: POST /vault.php
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56038 Closing
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56052 Accepted
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56052 [200]: POST /vault.php
+[Mon Sep  7 11:11:27 2026] 127.0.0.1:56052 Closing
