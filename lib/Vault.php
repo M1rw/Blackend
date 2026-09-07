@@ -238,7 +238,9 @@ final class Vault
         string $rkHash     = '',   // SHA-256 hash of sender's receipt key
         string $dSaltB64   = '',   // optional duress PIN salt
         string $dWivB64    = '',   // optional duress wrapper IV
-        string $dWrappedB64 = ''   // optional duress wrapped key
+        string $dWrappedB64 = '',  // optional duress wrapped key
+        string $dIvB64     = '',   // optional duress payload IV
+        string $dCtB64     = ''    // optional duress payload CT
     ): array {
         $iv = self::b64d($ivB64);
         $ct = self::b64d($ctB64);
@@ -278,6 +280,8 @@ final class Vault
             $envPayload['d_salt']    = $dSaltB64;
             $envPayload['d_wiv']     = $dWivB64;
             $envPayload['d_wrapped'] = $dWrappedB64;
+            if ($dIvB64) $envPayload['d_iv'] = $dIvB64;
+            if ($dCtB64) $envPayload['d_ct'] = $dCtB64;
         }
 
         $env = $this->sealBlob(json_encode($envPayload));
@@ -414,6 +418,8 @@ final class Vault
                 'd_salt'       => (string)($env['d_salt'] ?? ''),
                 'd_wiv'        => (string)($env['d_wiv'] ?? ''),
                 'd_wrapped'    => (string)($env['d_wrapped'] ?? ''),
+                'd_iv'         => (string)($env['d_iv'] ?? ''),
+                'd_ct'         => (string)($env['d_ct'] ?? ''),
                 'pin'          => $isPin,
                 'nc'           => (int)$m['nc'],
                 'read'         => (int)($m['read'] ?? 0),
