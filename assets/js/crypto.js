@@ -304,6 +304,31 @@ const BlackendCrypto = (() => {
       envelope.salt = b64u(salt);
       envelope.wiv = b64u(wiv);
       envelope.wrapped = b64u(wrapped);
+
+      if (opts && opts.duressPin) {
+        const dSalt = getRandomBytes(16);
+        const dWiv = getRandomBytes(12);
+        const dWk = await deriveWrapKey(opts.duressPin, dSalt);
+        const decoyKey = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+        const decoyPayload = {
+          m: opts.duressMsg || 'Meeting confirmed for tomorrow at 2 PM. Agenda is attached.',
+          x: expiresAt,
+          f: null,
+          isDuress: true
+        };
+        const decoyPt = new TextEncoder().encode(JSON.stringify(decoyPayload));
+        const decoyIv = getRandomBytes(12);
+        const decoyCt = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: decoyIv }, decoyKey, decoyPt));
+        const rawDecoyKb = new Uint8Array(await subtle.exportKey('raw', decoyKey));
+        const dWrapped = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: dWiv }, dWk, rawDecoyKb));
+
+        envelope.d_salt = b64u(dSalt);
+        envelope.d_wiv = b64u(dWiv);
+        envelope.d_wrapped = b64u(dWrapped);
+        envelope.d_iv = b64u(decoyIv);
+        envelope.d_ct = b64u(decoyCt);
+      }
+
       frag = ''; // No hash needed!
     } else {
       // Ultra-compact 16-byte Nano-Seed fragment
@@ -337,15 +362,31 @@ const BlackendCrypto = (() => {
     let key;
     let kbBytes = null;
 
+    let isDuress = false;
     // Check if envelope has PIN protection (Zero-Hash PIN Shield)
     if (resEnvelope.wrapped && resEnvelope.salt && resEnvelope.wiv) {
       if (!pin) throw new Error('needPin');
       const salt = ub64(resEnvelope.salt);
       const wiv = ub64(resEnvelope.wiv);
       const wrapped = ub64(resEnvelope.wrapped);
-      const wk = await deriveWrapKey(pin, salt);
-      kbBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
-      key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
+
+      try {
+        const wk = await deriveWrapKey(pin, salt);
+        kbBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: wiv }, wk, wrapped));
+        key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
+      } catch (errTrue) {
+        if (resEnvelope.d_wrapped && resEnvelope.d_salt && resEnvelope.d_wiv) {
+          const dSalt = ub64(resEnvelope.d_salt);
+          const dWiv = ub64(resEnvelope.d_wiv);
+          const dWrapped = ub64(resEnvelope.d_wrapped);
+          const dWk = await deriveWrapKey(pin, dSalt);
+          kbBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: dWiv }, dWk, dWrapped));
+          key = await subtle.importKey('raw', kbBytes, { name: 'AES-GCM' }, true, ['decrypt']);
+          isDuress = true;
+        } else {
+          throw errTrue;
+        }
+      }
     } else if (frag && frag.startsWith('n.')) {
       // Compact Nano-Seed key
       const seedBytes = ub64(frag.slice(2));
@@ -371,11 +412,12 @@ const BlackendCrypto = (() => {
       throw new Error('invalidFrag');
     }
 
-    const iv = ub64(resEnvelope.iv);
-    const ct = ub64(resEnvelope.ct);
+    const iv = ub64(isDuress && resEnvelope.d_iv ? resEnvelope.d_iv : resEnvelope.iv);
+    const ct = ub64(isDuress && resEnvelope.d_ct ? resEnvelope.d_ct : resEnvelope.ct);
     const pt = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
     const obj = JSON.parse(new TextDecoder().decode(pt));
-    return { obj, kb: kbBytes };
+    if (isDuress) obj.isDuress = true;
+    return { obj, kb: kbBytes, isDuress };
   }
 
   async function decryptVaultChunk(chunkB64, kb) {
@@ -416,6 +458,109 @@ const BlackendCrypto = (() => {
     return null;
   }
 
+  /* =========================================================================
+     3. STEGANOGRAPHIC IMAGE CARRIER (PNG LSB Embedding)
+     Embeds encrypted payload text into the Least Significant Bits (LSB)
+     of RGBA canvas pixels.
+     Format: [4-byte uint32 length][4-byte magic "BKST"][payload bytes]
+     ========================================================================= */
+
+  function embedStego(imageData, payloadText) {
+    const encoder = new TextEncoder();
+    const payloadBytes = encoder.encode(payloadText);
+    const magic = encoder.encode('BKST'); // 4 bytes magic header
+    const totalDataLen = 8 + payloadBytes.length;
+
+    const fullData = new Uint8Array(totalDataLen);
+    const view = new DataView(fullData.buffer);
+    view.setUint32(0, payloadBytes.length, false); // Big endian length
+    fullData.set(magic, 4);
+    fullData.set(payloadBytes, 8);
+
+    const totalBits = totalDataLen * 8;
+    const pixelsNeeded = Math.ceil(totalBits / 3); // 3 bits per pixel (R, G, B channels)
+
+    if (pixelsNeeded > imageData.width * imageData.height) {
+      throw new Error('Image canvas too small to hold payload');
+    }
+
+    const data = imageData.data;
+    let bitIndex = 0;
+
+    for (let i = 0; i < data.length && bitIndex < totalBits; i += 4) {
+      // Modify R, G, B channels (indices i, i+1, i+2). Skip Alpha (i+3).
+      for (let ch = 0; ch < 3 && bitIndex < totalBits; ch++) {
+        const byteIdx = bitIndex >> 3;
+        const bitOffset = 7 - (bitIndex & 7);
+        const bit = (fullData[byteIdx] >> bitOffset) & 1;
+
+        data[i + ch] = (data[i + ch] & 0xFE) | bit; // Clear LSB and write payload bit
+        bitIndex++;
+      }
+    }
+
+    return imageData;
+  }
+
+  function extractStego(imageData) {
+    const data = imageData.data;
+    // First read header: 8 bytes = 64 bits = 22 pixels
+    const headerBits = [];
+
+    // Read bits sequentially from RGB channels
+    for (let i = 0; i < data.length; i += 4) {
+      for (let ch = 0; ch < 3; ch++) {
+        headerBits.push(data[i + ch] & 1);
+      }
+      if (headerBits.length >= 64) break;
+    }
+
+    // Convert first 64 bits to 8 bytes
+    const headerBytes = new Uint8Array(8);
+    for (let b = 0; b < 8; b++) {
+      let val = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        val = (val << 1) | headerBits[b * 8 + bit];
+      }
+      headerBytes[b] = val;
+    }
+
+    const decoder = new TextDecoder();
+    const magic = decoder.decode(headerBytes.subarray(4, 8));
+    if (magic !== 'BKST') {
+      throw new Error('No steganographic payload found in image');
+    }
+
+    const payloadLen = new DataView(headerBytes.buffer).getUint32(0, false);
+    if (payloadLen <= 0 || payloadLen > 10 * 1048576) {
+      throw new Error('Invalid steganographic payload length');
+    }
+
+    const totalBitsNeeded = (8 + payloadLen) * 8;
+    const allBits = [];
+    let curBit = 0;
+
+    for (let i = 0; i < data.length && curBit < totalBitsNeeded; i += 4) {
+      for (let ch = 0; ch < 3 && curBit < totalBitsNeeded; ch++) {
+        allBits.push(data[i + ch] & 1);
+        curBit++;
+      }
+    }
+
+    // Convert bits 64..totalBitsNeeded into payload Uint8Array
+    const payloadBytes = new Uint8Array(payloadLen);
+    for (let b = 0; b < payloadLen; b++) {
+      let val = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        const bitIdx = 64 + b * 8 + bit;
+        val = (val << 1) | (allBits[bitIdx] || 0);
+      }
+      payloadBytes[b] = val;
+    }
+
+    return decoder.decode(payloadBytes);
+  }
+
   return {
     CHUNK_SIZE,
     PBKDF2_ITERS,
@@ -430,6 +575,8 @@ const BlackendCrypto = (() => {
     buildVaultPayload,
     decryptVaultPayload,
     decryptVaultChunk,
+    embedStego,
+    extractStego,
     parseLink
   };
 })();

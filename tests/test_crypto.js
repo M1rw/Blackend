@@ -243,6 +243,57 @@ async function runTests() {
     console.log('[PASS] VaultBackend stopWatch timer and watcher cleanup verified');
   }
 
+  // Test 2.10: Steganographic LSB Image Embedding & Extraction
+  {
+    const payloadText = 'k1.Z8Vgr3mbC88.aJHiF0qRs7T2vXwYz3Lm5N8bC1dE6fGh4.Zml4ZWRrZXk';
+    const width = 100, height = 100;
+    const fakeImageData = {
+      width,
+      height,
+      data: new Uint8Array(width * height * 4) // Blank RGBA image canvas
+    };
+
+    // Embed payload into RGBA canvas
+    BlackendCrypto.embedStego(fakeImageData, payloadText);
+
+    // Extract payload from RGBA canvas
+    const extractedText = BlackendCrypto.extractStego(fakeImageData);
+    assert.strictEqual(extractedText, payloadText, 'Extracted steganographic text must match embedded payload');
+    console.log('[PASS] Steganographic LSB image carrier embedding and extraction roundtrip');
+  }
+
+  // Test 2.11: Multi-PIN Duress Decoy System
+  {
+    const trueMsg = 'Primary confidential intelligence payload';
+    const decoyMsg = 'Plausible decoy meeting schedule for 3 PM';
+    const truePin = '1234';
+    const duressPin = '9999';
+
+    const vData = await BlackendCrypto.buildVaultPayload(trueMsg, 3600, truePin, null, {
+      duressPin,
+      duressMsg: decoyMsg
+    });
+
+    // Unlocking with True PIN
+    const { obj: trueObj, isDuress: isDuress1 } = await BlackendCrypto.decryptVaultPayload(
+      vData.envelope,
+      '',
+      truePin
+    );
+    assert.strictEqual(trueObj.m, trueMsg);
+    assert(!isDuress1, 'True PIN must not trigger duress state');
+
+    // Unlocking with Duress PIN
+    const { obj: duressObj, isDuress: isDuress2 } = await BlackendCrypto.decryptVaultPayload(
+      vData.envelope,
+      '',
+      duressPin
+    );
+    assert.strictEqual(duressObj.m, decoyMsg);
+    assert(isDuress2, 'Duress PIN must trigger duress state flag');
+    console.log('[PASS] Multi-PIN Duress Decoy payload roundtrip verified');
+  }
+
   console.log('\n>>> ALL AUTOMATED TESTS PASSED SUCCESSFULLY! <<<\n');
 }
 

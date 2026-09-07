@@ -178,7 +178,7 @@ final class Vault
 
     private function whyOk(string $w): string
     {
-        return in_array($w, ['read', 'expired', 'killed', 'wiped'], true) ? $w : 'killed';
+        return in_array($w, ['read', 'expired', 'killed', 'wiped', 'duress'], true) ? $w : 'killed';
     }
 
     /** Full destruction, leaving status tombstone.
@@ -235,7 +235,10 @@ final class Vault
         string $wivB64     = '',
         string $wrappedB64 = '',
         array  $settings   = [],   // public per-message display settings (unencrypted)
-        string $rkHash     = ''    // SHA-256 hash of sender's receipt key
+        string $rkHash     = '',   // SHA-256 hash of sender's receipt key
+        string $dSaltB64   = '',   // optional duress PIN salt
+        string $dWivB64    = '',   // optional duress wrapper IV
+        string $dWrappedB64 = ''   // optional duress wrapped key
     ): array {
         $iv = self::b64d($ivB64);
         $ct = self::b64d($ctB64);
@@ -271,6 +274,11 @@ final class Vault
             'wiv'     => $wivB64,
             'wrapped' => $wrappedB64
         ];
+        if ($dSaltB64 && $dWivB64 && $dWrappedB64) {
+            $envPayload['d_salt']    = $dSaltB64;
+            $envPayload['d_wiv']     = $dWivB64;
+            $envPayload['d_wrapped'] = $dWrappedB64;
+        }
 
         $env = $this->sealBlob(json_encode($envPayload));
         $this->write($dir . '/env.bin', $env);
@@ -403,6 +411,9 @@ final class Vault
                 'salt'         => (string)($env['salt'] ?? ''),
                 'wiv'          => (string)($env['wiv'] ?? ''),
                 'wrapped'      => (string)($env['wrapped'] ?? ''),
+                'd_salt'       => (string)($env['d_salt'] ?? ''),
+                'd_wiv'        => (string)($env['d_wiv'] ?? ''),
+                'd_wrapped'    => (string)($env['d_wrapped'] ?? ''),
                 'pin'          => $isPin,
                 'nc'           => (int)$m['nc'],
                 'read'         => (int)($m['read'] ?? 0),

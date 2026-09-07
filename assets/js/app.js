@@ -1625,19 +1625,25 @@
 
       if (rxContext.type === 'vault') {
         try {
-          const { obj, kb } = await BlackendCrypto.decryptVaultPayload(
+          const { obj, kb, isDuress } = await BlackendCrypto.decryptVaultPayload(
             rxContext.envelope || rxContext,
             rxContext.frag,
             code
           );
           rxContext.obj = obj;
           rxContext.kb = kb;
-          // Explicitly claim and transition to 'opened' state upon successful PIN unlock
-          const opRes = await api('open', { id: rxContext.token });
-          if (opRes && opRes.ok && rxContext.envelope) {
-            rxContext.envelope.read = opRes.read;
-            rxContext.envelope.now = opRes.now;
-            rxContext.envelope.already_read = false;
+
+          if (isDuress) {
+            // Silently burn the real envelope on the server immediately upon duress PIN entry
+            api('burn', { id: rxContext.token, why: 'duress' });
+          } else {
+            // Explicitly claim and transition to 'opened' state upon successful PIN unlock
+            const opRes = await api('open', { id: rxContext.token });
+            if (opRes && opRes.ok && rxContext.envelope) {
+              rxContext.envelope.read = opRes.read;
+              rxContext.envelope.now = opRes.now;
+              rxContext.envelope.already_read = false;
+            }
           }
           await renderDecryptedMessage(obj, kb);
         } catch (_) {
