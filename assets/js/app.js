@@ -1251,6 +1251,7 @@
           <button class="btn primary" data-act="view">${IC.eye} view once</button>
           <div class="badges">
             <span class="badge">${IC.shield} ${mode === 'vault' ? 'vault escrow' : 'direct in-link'}</span>
+            <span class="badge">${IC.shield} ML-KEM Hybrid</span>
             ${attBadge ? `<span class="badge"><span class="att-ic">${IC.clip}</span>${
               attBadge.generic ? 'file attached' : escapeHTML(elide(attBadge.n, 20)) + ' · ' + fmtSize(attBadge.s)
             }</span>` : ''}

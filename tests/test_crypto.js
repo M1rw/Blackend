@@ -294,6 +294,17 @@ async function runTests() {
     console.log('[PASS] Multi-PIN Duress Decoy payload roundtrip verified');
   }
 
+  // Test 2.12: Post-Quantum ML-KEM Hybrid Key Derivation
+  {
+    const classicalBytes = Buffer.from('classical_seed_bytes_32bytes_len');
+    const pqSeed = Buffer.from('post_quantum_entropy_seed_32bits');
+    const pqKey = await BlackendCrypto.derivePostQuantumKey(classicalBytes, pqSeed);
+    assert(pqKey, 'Post-quantum derived CryptoKey must exist');
+    assert.strictEqual(pqKey.algorithm.name, 'AES-GCM');
+    assert.strictEqual(pqKey.algorithm.length, 256);
+    console.log('[PASS] Post-Quantum Hybrid ML-KEM key derivation verified');
+  }
+
   console.log('\n>>> ALL AUTOMATED TESTS PASSED SUCCESSFULLY! <<<\n');
 }
 

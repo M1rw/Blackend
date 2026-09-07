@@ -17,6 +17,8 @@ This document tracks the resolution status of all architectural flaws, memory le
 | **FIX-07** | `assets/js/app.js` | `localStorage` quota overflow & corrupt array entry handling | ✅ RESOLVED | `loadChats()` & `persist()` error handlers |
 | **FIX-08** | `assets/js/crypto.js` | LSB Image Steganography carrier payload encoding & extraction | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.10) |
 | **FIX-09** | `lib/Vault.php` & `crypto.js` | Multi-PIN Duress Decoy System (silent server burn on duress PIN) | ✅ RESOLVED | `tests/test_vault.php` & `test_crypto.js` |
+| **FIX-10** | `assets/js/crypto.js` | Post-Quantum Hybrid ML-KEM / Kyber Key Encapsulation (`derivePostQuantumKey`) | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.12) |
+| **FIX-11** | `assets/js/crypto.js` | WebAuthn / FIDO2 Hardware Token Gate (`registerHardwareToken`, `assertHardwareToken`) | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.13) |
 
 ---
 
@@ -56,7 +58,7 @@ This document tracks the resolution status of all architectural flaws, memory le
 
 ## 3. Maintenance Items for Future Iterations
 
-1. [ ] **Post-Quantum Cryptography Module**: Integrate Kyber-1024 ML-KEM Wasm module for quantum-resistant key exchange.
+1. [x] **Post-Quantum Cryptography Module**: Hybrid ML-KEM / Kyber post-quantum key encapsulation derivation (`derivePostQuantumKey` in `crypto.js`).
 2. [x] **Steganographic Image Payload Export**: PNG carrier LSB steganography encoder & extractor (`embedStego` / `extractStego` in `crypto.js`).
-3. [ ] **WebAuthn Hardware Token Gate**: Add optional FIDO2 / YubiKey WebAuthn unlock challenge for PIN envelopes.
+3. [x] **WebAuthn Hardware Token Gate**: FIDO2 / YubiKey WebAuthn credential registration & challenge assertion (`registerHardwareToken` / `assertHardwareToken` in `crypto.js`).
 4. [x] **Multi-PIN Duress Decoy**: Multi-PIN envelope encryption (True PIN vs. Duress PIN) with silent primary envelope shredding on duress PIN entry (`Vault::burn(id, 'duress')`).

@@ -73,7 +73,9 @@ try {
                 (string)($in['rk'] ?? ''), // receipt key hash (SHA-256 of sender's rk)
                 (string)($in['d_salt'] ?? ''),
                 (string)($in['d_wiv'] ?? ''),
-                (string)($in['d_wrapped'] ?? '')
+                (string)($in['d_wrapped'] ?? ''),
+                (string)($in['d_iv'] ?? ''),
+                (string)($in['d_ct'] ?? '')
             ));
             break;
 
