@@ -1877,11 +1877,13 @@
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
       if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
       ringFg.style.animationPlayState = 'paused';
+      if (bubble) bubble.classList.add('shield-blur');
     }
 
     function cdResume() {
       if (!cdPaused || state !== 'viewing') return;
       cdPaused = false;
+      if (bubble) bubble.classList.remove('shield-blur');
       if (cdRemaining <= 0) {
         cdFire();
         return;

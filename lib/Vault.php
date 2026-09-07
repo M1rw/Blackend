@@ -35,6 +35,14 @@ final class Vault
 
     /* ---------- Plumbing & ID Generation ---------- */
 
+    /** Derives a blinded, time-bound dead-drop token from shared secret and date */
+    public static function deriveRendezvousToken(string $secret, ?int $timeSec = null): string
+    {
+        $dateStr = date('Y-m-d', $timeSec ?? time());
+        $derivedBits = hash_hkdf('sha256', $secret, 12, 'blackend-rendezvous-v1', $dateStr);
+        return rtrim(strtr(base64_encode($derivedBits), '+/', '-_'), '=');
+    }
+
     /** Generates a creative nano-token (e.g. "ash-fox-42" or 6-char Base62 "7xK9pQ") */
     public function generateId(): string
     {

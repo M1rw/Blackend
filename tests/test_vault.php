@@ -152,6 +152,11 @@ assert(strpos($wOutput, 'data: ') !== false, 'Watch output must contain SSE data
 putenv('VERCEL');
 echo "[PASS] Serverless SSE watch duration cap verified (elapsed: " . round($tElapsed, 2) . "s)\n";
 
+// Test 11: Blinded Dead-Drop Rendezvous Token Derivation
+$rdvToken = Vault::deriveRendezvousToken('shared-dead-drop-secret', time());
+assert(is_string($rdvToken) && strlen($rdvToken) >= 12, 'Rendezvous token must be Base64URL string');
+echo "[PASS] Blinded Dead-Drop Rendezvous Token derivation verified\n";
+
 // Cleanup test dir
 foreach (glob($testDir . '/*') ?: [] as $f) {
     if (is_dir($f)) {

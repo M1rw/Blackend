@@ -1957,6 +1957,14 @@ main {
   border-width: 0;
 }
 
+.bubble.shield-blur {
+  filter: blur(14px) grayscale(1);
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  pointer-events: none;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 #msgText {
   display: block;
   white-space: pre-wrap;

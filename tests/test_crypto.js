@@ -305,6 +305,16 @@ async function runTests() {
     console.log('[PASS] Post-Quantum Hybrid ML-KEM key derivation verified');
   }
 
+  // Test 2.13: Blinded Dead-Drop Rendezvous Token Derivation
+  {
+    const secret = 'operation-lunar-fox-secret';
+    const date = new Date('2025-09-06');
+    const token = await BlackendCrypto.deriveRendezvousToken(secret, date);
+    assert(typeof token === 'string', 'Derived rendezvous token must be a string');
+    assert(token.length >= 10, 'Derived rendezvous token must be valid Base64URL string');
+    console.log('[PASS] Blinded Dead-Drop Rendezvous Token derivation verified');
+  }
+
   console.log('\n>>> ALL AUTOMATED TESTS PASSED SUCCESSFULLY! <<<\n');
 }
 

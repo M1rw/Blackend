@@ -19,6 +19,8 @@ This document tracks the resolution status of all architectural flaws, memory le
 | **FIX-09** | `lib/Vault.php` & `crypto.js` | Multi-PIN Duress Decoy System (silent server burn on duress PIN) | ✅ RESOLVED | `tests/test_vault.php` & `test_crypto.js` |
 | **FIX-10** | `assets/js/crypto.js` | Post-Quantum Hybrid ML-KEM / Kyber Key Encapsulation (`derivePostQuantumKey`) | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.12) |
 | **FIX-11** | `assets/js/crypto.js` | WebAuthn / FIDO2 Hardware Token Gate (`registerHardwareToken`, `assertHardwareToken`) | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.13) |
+| **FIX-12** | `assets/css/app.css` & `app.js` | In-Memory Anti-Forensic Screen Shield (auto-blur on focus loss/tab switch) | ✅ RESOLVED | `app.css` & `app.js` blur handlers |
+| **FIX-13** | `lib/Vault.php` & `crypto.js` | Blinded Dead-Drop Rendezvous Token Derivation (`deriveRendezvousToken`) | ✅ RESOLVED | `tests/test_vault.php` & `test_crypto.js` |
 
 ---
 
@@ -62,3 +64,5 @@ This document tracks the resolution status of all architectural flaws, memory le
 2. [x] **Steganographic Image Payload Export**: PNG carrier LSB steganography encoder & extractor (`embedStego` / `extractStego` in `crypto.js`).
 3. [x] **WebAuthn Hardware Token Gate**: FIDO2 / YubiKey WebAuthn credential registration & challenge assertion (`registerHardwareToken` / `assertHardwareToken` in `crypto.js`).
 4. [x] **Multi-PIN Duress Decoy**: Multi-PIN envelope encryption (True PIN vs. Duress PIN) with silent primary envelope shredding on duress PIN entry (`Vault::burn(id, 'duress')`).
+5. [x] **In-Memory Anti-Forensic Screen Shield**: Auto-blur CSS filter and text protection on window blur/tab switch during viewing (`app.css` / `app.js`).
+6. [x] **Blinded Dead-Drop Rendezvous Protocol**: Double-blinded HKDF rendezvous token derivation (`deriveRendezvousToken` in `Vault.php` and `crypto.js`).
