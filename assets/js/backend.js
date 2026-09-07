@@ -102,11 +102,15 @@ const VaultBackend = (() => {
      ================================================================ */
 
   function _b64u(bytes) {
-    // Works in both browser and Node.js
-    const bin = String.fromCharCode(...bytes);
+    // Binary-safe base64url conversion for Uint8Array across Browser & Node
+    let bin = '';
+    const len = bytes.length || bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      bin += String.fromCharCode(bytes[i]);
+    }
     const b64 = (typeof btoa !== 'undefined')
       ? btoa(bin)
-      : Buffer.from(bin, 'binary').toString('base64');
+      : Buffer.from(bytes).toString('base64');
     return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 

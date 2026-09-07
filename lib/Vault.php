@@ -690,7 +690,7 @@ final class Vault
         }
 
         if (!is_dir($dir)) {
-            return ['ok' => false, 'error' => 'purged'];
+            return ['ok' => false, 'error' => 'not_found'];
         }
 
         $metaP = $dir . '/meta.json';
