@@ -15,6 +15,8 @@ This document tracks the resolution status of all architectural flaws, memory le
 | **FIX-05** | `vault.php` | Omitted `break;` statements in `switch ($action)` API router | ✅ RESOLVED | PHP syntax & unit test suite |
 | **FIX-06** | `lib/Vault.php` | Lockless chunk retrieval (`Vault::chunk`) causing concurrency races | ✅ RESOLVED | `tests/test_vault.php` (Test 6) |
 | **FIX-07** | `assets/js/app.js` | `localStorage` quota overflow & corrupt array entry handling | ✅ RESOLVED | `loadChats()` & `persist()` error handlers |
+| **FIX-08** | `assets/js/crypto.js` | LSB Image Steganography carrier payload encoding & extraction | ✅ RESOLVED | `tests/test_crypto.js` (Test 2.10) |
+| **FIX-09** | `lib/Vault.php` & `crypto.js` | Multi-PIN Duress Decoy System (silent server burn on duress PIN) | ✅ RESOLVED | `tests/test_vault.php` & `test_crypto.js` |
 
 ---
 
@@ -55,6 +57,6 @@ This document tracks the resolution status of all architectural flaws, memory le
 ## 3. Maintenance Items for Future Iterations
 
 1. [ ] **Post-Quantum Cryptography Module**: Integrate Kyber-1024 ML-KEM Wasm module for quantum-resistant key exchange.
-2. [ ] **Steganographic Image Payload Export**: Add PNG carrier image generator option in `qrenc.js` / `crypto.js`.
+2. [x] **Steganographic Image Payload Export**: PNG carrier LSB steganography encoder & extractor (`embedStego` / `extractStego` in `crypto.js`).
 3. [ ] **WebAuthn Hardware Token Gate**: Add optional FIDO2 / YubiKey WebAuthn unlock challenge for PIN envelopes.
-4. [ ] **Multi-PIN Duress Decoy**: Implement duress PIN handling to destroy primary payload while rendering plausible decoy text.
+4. [x] **Multi-PIN Duress Decoy**: Multi-PIN envelope encryption (True PIN vs. Duress PIN) with silent primary envelope shredding on duress PIN entry (`Vault::burn(id, 'duress')`).
