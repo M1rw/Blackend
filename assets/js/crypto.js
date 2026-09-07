@@ -669,6 +669,37 @@ const BlackendCrypto = (() => {
     };
   }
 
+  /* =========================================================================
+     6. BLINDED DEAD-DROP RENDEZVOUS TOKEN DERIVATION
+     Derives double-blinded, time-bound dead-drop tokens using HKDF-SHA256
+     over shared secret + date window.
+     ========================================================================= */
+
+  async function deriveRendezvousToken(secretText, dateObj = new Date()) {
+    const subtle = getSubtle();
+    const dateStr = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
+    const baseKey = await subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secretText),
+      { name: 'HKDF' },
+      false,
+      ['deriveBits']
+    );
+
+    const derivedBits = new Uint8Array(await subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new TextEncoder().encode(dateStr),
+        info: new TextEncoder().encode('blackend-rendezvous-v1')
+      },
+      baseKey,
+      96 // 12 bytes = 96 bits
+    ));
+
+    return b64u(derivedBits);
+  }
+
   return {
     CHUNK_SIZE,
     PBKDF2_ITERS,
@@ -678,6 +709,7 @@ const BlackendCrypto = (() => {
     deriveWrapKey,
     deriveKeyFromSeed,
     derivePostQuantumKey,
+    deriveRendezvousToken,
     registerHardwareToken,
     assertHardwareToken,
     buildDirectPayload,
