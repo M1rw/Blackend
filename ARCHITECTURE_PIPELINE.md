@@ -1,22 +1,34 @@
-# blackend — Architecture Pipeline & Interaction Specification
+# blackend — Architecture Pipeline, Interaction & Security Specification
 
-## Executive Overview
+## 1. Executive Overview
 
-**blackend** is an enterprise-grade, zero-knowledge, self-destructing temporary messaging and file-sharing web application. It operates on a dual-mode cryptography architecture:
+**blackend** is an enterprise-grade, zero-knowledge, self-destructing temporary messaging and file-sharing web application. It operates on a dual-mode client-side cryptography architecture:
 
 1. **Direct In-Link Mode (100% Serverless)**:
-   - Ciphertext, IV, and decryption key reside entirely in the URL fragment (`#k1...` or `#k2...`).
-   - RFC 3986 guarantees browsers never transmit fragment identifiers (`#`) across the network to any web server or proxy.
+   - Payload, IV, ciphertext, and decryption key reside entirely inside the URL fragment (`#k1...` or `#k2...`).
+   - RFC 3986 section 3.5 guarantees browsers never transmit fragment identifiers (`#`) across the network to web servers or proxies.
    - Zero bytes stored on any server.
 
 2. **Blind Escrow Vault Mode (Short URLs with Single-Read Shredding)**:
    - Formats: Clean short path (`/v/token#key`) or query format (`?m=token#key`).
-   - **Zero-Hash PIN Shield**: When PIN protection is enabled, the decryption key is wrapped client-side using 120,000 PBKDF2-SHA256 iterations and stored in the vault envelope. The URL requires **no fragment at all** (`/v/token`), guaranteeing max URL compatibility.
-   - First read delivers the envelope, activates a 10-minute claim window for multi-chunk file retrieval, and shreds the data from server memory/disk using cryptographic random noise before `unlink`.
+   - **Zero-Hash PIN Shield**: When PIN protection is enabled, the decryption key is wrapped client-side using 120,000 PBKDF2-SHA256 iterations and stored inside the vault envelope. The URL requires **no fragment at all** (`/v/token`), guaranteeing maximum URL compatibility across SMS, messaging apps, and strict email filters.
+   - First read delivers the envelope, activates a 10-minute claim window for multi-chunk file retrieval, and overwrites server storage with cryptographic random noise before unlinking (`unlink`).
 
 ---
 
-## Click-by-Click Interaction & Button Purpose Matrix
+## 2. Threat Model & Security Guarantees
+
+| Threat Vector | Mitigating Mechanism | Security Guarantee |
+|---|---|---|
+| **Server Compromise / Malicious Host** | Client-side AES-256-GCM encryption in browser WebCrypto API. Server holds only encrypted noise. | Server operator or compromised host cannot read plaintext messages or attached files. |
+| **Network Eavesdropping / Proxy Interception** | Decryption keys travel in URL fragment (`#`) or wrapped inside zero-knowledge PIN envelope. | Network observers see only encrypted blobs or token requests without decryption keys. |
+| **Physical Device Theft / Forensic Recovery** | Messages are auto-burned on schedule or after read. Server overwrites file blocks with random bytes before deletion. | Storage blocks are cryptographically shredded (`random_bytes`), leaving zero recoverable bytes on disk. |
+| **PIN Brute-Force Attacks** | Client-side 120,000 PBKDF2-SHA256 iterations + server-enforced 3-strike rate limiter (`Vault::fail`). | 3 wrong attempts permanently destroy the envelope on the server. |
+| **Subpoenas / Legal Demands** | Server logs no IP addresses, user agents, or tracking cookies. Data is shredded immediately after read. | No historical logs or unencrypted data exist to subpoena. |
+
+---
+
+## 3. Click-by-Click Interaction & Button Purpose Matrix
 
 | Element Selector | Target / Location | Event | Trigger Context | Action Executed | Next State | Security & Purpose |
 |---|---|---|---|---|---|---|
@@ -61,7 +73,7 @@
 
 ---
 
-## State Machine Pipeline
+## 4. State Machine Pipeline
 
 ```text
                ┌───────────────┐
@@ -112,7 +124,7 @@
 
 ---
 
-## Animation & Visual FX Engine
+## 5. Animation & Visual FX Engine
 
 1. **Ember Wave Text Dissolve (`runWave`)**:
    - Converts plaintext DOM text into individual `<span>` characters (`waveify`).
@@ -133,30 +145,38 @@
 
 ---
 
-## Cryptographic Architecture & Data Flow
+## 6. API Endpoint & POST Schema Specification (`/vault.php`)
 
-```text
-[ Sender Browser ]
-  ├─ 1. Generate 256-bit AES-GCM Key (or 16-byte Nano-Seed)
-  ├─ 2. Encrypt Payload + Attachments in WebCrypto API
-  ├─ 3. (Optional) PBKDF2-SHA256 Key Wrapping (120,000 iters)
-  ├─ 4. Generate 32-byte Random Receipt Key (rk)
-  ├─ 5. Hash rk with SHA-256 ('bk-receipt:' + rk) -> rk_hash
-  └─ 6. Send Encrypted Noise + rk_hash to /vault.php
-                             │
-                             ▼
-                   [ /vault.php Backend ]
-                     ├─ OpenSSL AES-256-GCM At-Rest Encryption
-                     ├─ Store env.bin + meta.json in data_dir
-                     └─ Return Token ("ash-fox-42")
-                             │
-                             ▼
-[ Recipient Browser ]
-  ├─ 1. Fetch Envelope via POST /vault.php (action=fetch)
-  ├─ 2. Read Server Display Settings (Accent, Burn Speed, Fuse)
-  ├─ 3. Obtain Key Fragment from URL (#) or PIN Prompt
-  ├─ 4. Decrypt Ciphertext in Browser WebCrypto API
-  ├─ 5. Single-Read Shredding: Server overwrites chunk files with
-  │     random bytes and unlinks envelope upon open/claim expiry.
-  └─ 6. Key is destroyed; 0 bytes remain on disk/server.
-```
+All Vault API endpoints accept `POST` requests with `Content-Type: application/json`.
+
+| Action | Required Request Body Fields | Response Payload | Description |
+|---|---|---|---|
+| `store` | `exp`, `pin`, `nc`, `iv`, `ct`, `salt`, `wiv`, `wrapped`, `settings`, `rk` | `{ ok: true, id: "token" }` | Seals a new message envelope and returns creative nano-token. |
+| `put` | `id`, `i`, `data` | `{ ok: true }` | Uploads encrypted file chunk index `i`. |
+| `ready` | `id` | `{ ok: true }` | Marks file chunk uploads complete. |
+| `fetch` | `id` | `{ ok: true, iv, ct, salt, wiv, wrapped, pin, nc, read, claim, already_read, settings, now }` | Retrieves encrypted envelope and starts single-read claim window. |
+| `chunk` | `id`, `i` | `{ ok: true, data }` | Downloads chunk `i` and immediately overwrites/shreds chunk file on disk. |
+| `burn` | `id`, `why` | `{ ok: true }` | Overwrites envelope data with random noise and leaves tombstone. |
+| `open` | `id` | `{ ok: true, read, claim, already_read, now }` | Explicitly claims envelope upon successful PIN entry. |
+| `fail` | `id` | `{ ok: true, state: "locked"\|"killed", left: int }` | Increments PIN brute-force fail counter (3-strike destruction). |
+| `status` | `id` | `{ ok: true, state: "sealed"\|"opened"\|"gone", why?, now }` | Queries envelope lifecycle state without claiming. |
+| `watch` | `id` | `text/event-stream` SSE stream | Real-time SSE status stream (token remains in POST body). |
+| `receipt` | `id`, `rk` | `{ ok: true, created, opened, burned, why, now }` | Queries chain-of-custody audit trail using SHA-256 receipt key hash. |
+
+---
+
+## 7. Local Storage & Client Quota Architecture
+
+| Storage Key | Scope / Namespace | Data Format | Description & Quota Protection |
+|---|---|---|---|
+| `chats_v1` | Device local archive | Array of JSON objects | Stores pseudonymous archive history (`{id, mode, u, p, t, s, e, c, pin, att}`). Automatically trims in-link attachment blobs on quota exception. |
+| `bk_rk_v1` | Receipt keys | Object map `{token: {rk, ts}}` | Keeps plaintext 32-byte receipt keys. Capped at 100 most recent keys to prevent storage bloating. |
+| `blackend_settings_v2` | User preferences | JSON object | Persists theme accent, canvas toggles, burn speed, default fuse, and file limits. |
+
+---
+
+## 8. Serverless Topology & Vercel Constraints
+
+- **Storage Fallback**: On Vercel serverless containers, `$dataDir` falls back to `/tmp/blackend_data` (writable ephemeral directory).
+- **Execution Timeout Management**: SSE streaming in `Vault::watch` dynamically caps watch connection duration to 8 seconds on serverless environments (`VERCEL`, `VERCEL_ENV`) to eliminate HTTP 504 Gateway Timeouts while providing immediate status updates.
+- **URL Rewrite Routing**: `vercel.json` maps clean path URLs (`/v/:token`, `/m/:token`) directly to `api/index.php` and `api/vault.php`.
