@@ -211,6 +211,23 @@
     } catch (_) {
       chats = [];
     }
+    syncArchiveStatuses();
+  }
+
+  /** Background sync for active vault links in archive */
+  function syncArchiveStatuses() {
+    const activeVaults = chats.filter(c => c && c.id && c.s !== 'ash' && c.mode !== 'direct' && !c.p);
+    activeVaults.forEach(c => {
+      api('status', { id: c.id }).then(r => {
+        if (!r || !r.ok) return;
+        if (r.state === 'opened') {
+          markChat(c.id, 'opened', 'reading');
+        } else if (r.state === 'gone') {
+          const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : (r.why === 'killed' ? 'killed' : 'ended'));
+          markChat(c.id, 'ash', reason);
+        }
+      }).catch(() => {});
+    });
   }
 
   function persist() {
@@ -1346,40 +1363,43 @@
    * call it transparently.
    */
   function _onVaultEvent(r) {
-    if (!r || !r.ok) return;
-    if ((state !== 'sealed' && state !== 'opened') || !curToken) return;
+    if (!r || !r.ok || !curToken) return;
 
     if (r.state === 'opened') {
       markChat(curToken, 'opened', 'reading');
-      stopFuse();
-      const st = panes.card.querySelector('#cardStatus');
-      if (st && !st.dataset.wasOpened) {
-        st.dataset.wasOpened = '1';
-        st.innerHTML = '<i class="dot opened"></i>opened · reading...';
-        toast('recipient opened the link — reading now.');
-      }
-      const fl = panes.card.querySelector('#fuseLabel');
-      if (fl) {
-        fl.textContent = 'opened';
-        fl.classList.remove('hot');
+      if (state === 'sealed' || state === 'opened') {
+        stopFuse();
+        const st = panes.card.querySelector('#cardStatus');
+        if (st && !st.dataset.wasOpened) {
+          st.dataset.wasOpened = '1';
+          st.innerHTML = '<i class="dot opened"></i>opened · reading...';
+          toast('recipient opened the link — reading now.');
+        }
+        const fl = panes.card.querySelector('#fuseLabel');
+        if (fl) {
+          fl.textContent = 'opened';
+          fl.classList.remove('hot');
+        }
       }
     } else if (r.state === 'gone') {
       VaultBackend.stopWatch();
       const reason = r.why === 'read' ? 'opened' : (r.why === 'expired' ? 'expired' : (r.why === 'killed' ? 'killed' : 'ended'));
       markChat(curToken, 'ash', reason);
-      const st = panes.card.querySelector('#cardStatus');
-      if (st) {
-        st.innerHTML = `<i class="dot ash"></i>${reason === 'opened' ? 'opened · burned' : escapeHTML(reason)}`;
+      if (state === 'sealed' || state === 'opened') {
+        const st = panes.card.querySelector('#cardStatus');
+        if (st) {
+          st.innerHTML = `<i class="dot ash"></i>${reason === 'opened' ? 'opened · burned' : escapeHTML(reason)}`;
+        }
+        const fl = panes.card.querySelector('#fuseLabel');
+        if (fl) fl.hidden = true;
+        sessEnded();
+        if (reason === 'opened') {
+          toast('it was opened — the vault copy is ash.');
+        } else if (reason === 'killed') {
+          toast('PIN failed 3 times — vault copy destroyed.');
+        }
+        setAvatarMode('ash');
       }
-      const fl = panes.card.querySelector('#fuseLabel');
-      if (fl) fl.hidden = true;
-      sessEnded();
-      if (reason === 'opened') {
-        toast('it was opened — the vault copy is ash.');
-      } else if (reason === 'killed') {
-        toast('PIN failed 3 times — vault copy destroyed.');
-      }
-      setAvatarMode('ash');
     }
   }
 
@@ -2133,6 +2153,7 @@
         if (r.state === 'opened') {
           markChat(c.id, 'opened', 'reading');
           stopFuse();
+          startPoll(); // Keep watching for transition to 'gone'
           const st = panes.card.querySelector('#cardStatus');
           if (st) {
             st.innerHTML = '<i class="dot opened"></i>opened · reading...';
@@ -2147,7 +2168,7 @@
           markChat(c.id, 'ash', reason);
           stopFuse();
           stopPoll();
-          buildEnd(reason === 'expired' ? 'expired' : 'archive');
+          buildEnd(reason === 'expired' ? 'expired' : (reason === 'opened' ? 'opened' : 'archive'));
           state = 'done';
           setAvatarMode('ash');
           go('end');
