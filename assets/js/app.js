@@ -1866,57 +1866,44 @@
     await go('message');
     await wait(REDUCED ? 250 : 550);
 
-    ringFg.classList.add('run');
+    ringFg.classList.remove('run');
 
-    let cdRemaining = cdSecs * 1000;
-    let cdEnd = Date.now() + cdRemaining;
+    const totalMs = cdSecs * 1000;
+    const cdStart = Date.now();
+    const cdEnd   = cdStart + totalMs;
+    const CIRCUMFERENCE = 56.55; // 2 * pi * 9
     let cdTick = null;
-    let cdHandle = null;
-    let cdPaused = false;
 
     function cdFire() {
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
-      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
       finishViewing();
     }
 
-    function cdUpdateTick() {
+    function cdSync() {
+      if (state !== 'viewing') return;
       const now = Date.now();
+      const elapsed = Math.max(0, now - cdStart);
       const rem = Math.max(0, cdEnd - now);
-      const remSec = Math.ceil(rem / 1000);
-      cdNum.textContent = remSec + 's';
-      if (rem <= 0) {
-        cdFire();
-      }
-    }
 
-    function cdPause() {
-      if (cdPaused || state !== 'viewing') return;
-      cdPaused = true;
-      cdRemaining = Math.max(0, cdEnd - Date.now());
-      if (cdTick) { clearInterval(cdTick); cdTick = null; }
-      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
-      ringFg.style.animationPlayState = 'paused';
-      if (bubble) bubble.classList.add('shield-blur');
-    }
-
-    function cdResume() {
-      if (!cdPaused || state !== 'viewing') return;
-      cdPaused = false;
-      if (bubble) bubble.classList.remove('shield-blur');
-      if (cdRemaining <= 0) {
+      if (now >= cdEnd) {
         cdFire();
         return;
       }
-      cdEnd = Date.now() + cdRemaining;
-      cdNum.textContent = Math.ceil(cdRemaining / 1000) + 's';
-      ringFg.style.animationPlayState = 'running';
-      cdTick = setInterval(cdUpdateTick, 250);
-      cdHandle = setTimeout(cdFire, cdRemaining);
+
+      const remSec = Math.ceil(rem / 1000);
+      cdNum.textContent = remSec + 's';
+
+      const pct = Math.min(1, Math.max(0, elapsed / totalMs));
+      ringFg.style.strokeDashoffset = (CIRCUMFERENCE * pct).toFixed(2);
     }
 
     const onVisibility = () => {
-      if (document.hidden) cdPause(); else cdResume();
+      if (document.hidden) {
+        if (bubble) bubble.classList.add('shield-blur');
+      } else {
+        if (bubble) bubble.classList.remove('shield-blur');
+      }
+      cdSync();
     };
 
     const onBurnBeforeExit = () => {
@@ -1935,26 +1922,20 @@
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onBurnBeforeExit);
     window.addEventListener('beforeunload', onBurnBeforeExit);
-    window.addEventListener('pagehide', cdPause);
-    window.addEventListener('pageshow', cdResume);
-    window.addEventListener('blur', cdPause);
-    window.addEventListener('focus', cdResume);
+    window.addEventListener('blur', onVisibility);
+    window.addEventListener('focus', onVisibility);
 
-    // Store cleanup handle on a module-level variable so finishViewing can clean up
     window.__cdCleanup = () => {
       if (cdTick) { clearInterval(cdTick); cdTick = null; }
-      if (cdHandle) { clearTimeout(cdHandle); cdHandle = null; }
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', onBurnBeforeExit);
       window.removeEventListener('beforeunload', onBurnBeforeExit);
-      window.removeEventListener('pagehide', cdPause);
-      window.removeEventListener('pageshow', cdResume);
-      window.removeEventListener('blur', cdPause);
-      window.removeEventListener('focus', cdResume);
+      window.removeEventListener('blur', onVisibility);
+      window.removeEventListener('focus', onVisibility);
     };
 
-    cdTick = setInterval(cdUpdateTick, 250);
-    cdHandle = setTimeout(cdFire, cdRemaining);
+    cdSync();
+    cdTick = setInterval(cdSync, 100);
   }
 
   async function pullVaultChunks(tokenId, keyBytes, fileMeta) {
