@@ -277,6 +277,13 @@ const VaultBackend = (() => {
     _watching    = true;
     _watchAbort  = new AbortController();
 
+    // Use SSE stream in production; use non-blocking poll on local single-threaded dev servers (php -S)
+    const isLocalDev = typeof location !== 'undefined' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
+    if (isLocalDev) {
+      _startPoll(token, onEvent);
+      return;
+    }
+
     try {
       await _tryStream(token, onEvent, _watchAbort.signal);
     } catch (err) {
