@@ -14,7 +14,7 @@ ServerSignature Off
     RewriteBase /
 
     # Block direct access to internal directories and sensitive files
-    RewriteRule ^(lib|data|config\.php|\.git) - [F,L]
+    RewriteRule ^(lib|data|tests|config\.php|router\.php|\.) - [F,L]
 
     # Allow access to existing files and directories
     RewriteCond %{REQUEST_FILENAME} -f [OR]

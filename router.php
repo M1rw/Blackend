@@ -8,16 +8,17 @@ declare(strict_types=1);
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 
-// Serve existing static files as-is
-$filePath = __DIR__ . $uri;
-if ($uri !== '/' && is_file($filePath)) {
-    return false;
-}
-
 // Vault API endpoints
 if ($uri === '/vault.php' || $uri === '/api/vault.php') {
     require __DIR__ . '/vault.php';
     return true;
+}
+
+// Serve only public static assets as-is. Everything else (vault data, lib/,
+// config.php, tests/, .git, docs) must never be reachable over HTTP.
+if (preg_match('#^/assets/[A-Za-z0-9._/-]+$#', $uri) && strpos($uri, '..') === false
+    && is_file(__DIR__ . $uri)) {
+    return false;
 }
 
 // Clean URLs (/v/:token, /m/:token) and general routing to index.php

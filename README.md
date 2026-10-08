@@ -19,7 +19,7 @@ All encryption occurs client-side via the Web Crypto API (AES-256-GCM). Decrypti
 - **Local Device Archive**: Messages are archived locally in `localStorage` under pseudonyms with quota protection. History never leaves your device.
 - **Integrated QR Code Generator**: High-resolution scannable QR code generation and PNG export.
 - **Modular Lead-Engineered Architecture**: Clean separation of PHP backend, CSS design system, and JavaScript modules (`crypto.js`, `qrenc.js`, `canvas.js`, `app.js`).
-- **Serverless & Vercel Ready**: Out-of-the-box deployment for Vercel, Docker, Apache, Nginx, or static hosting.
+- **Serverless & Vercel Ready**: Out-of-the-box deployment for Vercel, Docker, Apache, or Nginx (PHP required for the vault; links fall back to Direct In-Link when it is unreachable).
 
 ---
 
@@ -43,7 +43,7 @@ blackend/
 ├── lib/
 │   └── Vault.php              # Secure PHP Vault class (at-rest encryption, secure shredding, GC)
 ├── index.php                  # PHP entrypoint emitting security headers & rendering template
-├── index.html                 # Standalone static HTML entrypoint for serverless/static hosting
+├── router.php                 # Router for PHP's built-in dev server (serves only /assets statically)
 ├── vault.php                  # Backend REST API endpoint for vault operations
 ├── vercel.json                # Vercel deployment configuration
 ├── tests/
@@ -77,13 +77,10 @@ https://your-domain.com/?m=9f3ab2c1e4d86f07#k1.Z8Vgr3mbC88aJHiF0qRs7
 ## Local Development & Testing
 
 ### Running the Web Server
-- **PHP**:
+- **PHP** (always pass the router — it handles clean URLs and keeps `data/`, `lib/`,
+  `.git` etc. off the web):
   ```bash
-  php -S localhost:8080
-  ```
-- **Node Static Server (Optional)**:
-  ```bash
-  npx serve .
+  php -S 127.0.0.1:8090 router.php   # or: npm run dev
   ```
 
 ### Running Automated Test Suites
@@ -109,7 +106,7 @@ vercel
 ### Environment Variables
 | Variable | Default | Description |
 |---|---|---|
-| `VAULT_SECRET` | System default | 256-bit hex secret for server-side at-rest encryption layer. |
+| `VAULT_SECRET` | Random key generated once into `<data_dir>/.vault_secret` | 256-bit hex secret for server-side at-rest encryption layer. |
 | `VAULT_DATA_DIR` | `__DIR__ . '/data'` (or `/tmp/blackend_data` on Vercel) | Directory where vault data is stored. |
 
 Generate a production secret:
